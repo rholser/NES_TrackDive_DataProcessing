@@ -1,17 +1,29 @@
-% DataProcessing Consolidates all dive processing steps into one script.
+% DataProcessing Consolidates all processing steps into one script.
 %
-% Requires "New IKNOS" toolbox and modified/custom functions and files:
-%   For Step 2 (full resolution ZOC and Dive Analysis):
-%       DA_data_compiler_V4.m
-%       change_format_DA_V4_2.m
-%       iknos_DA.m
+% Requires MATLAB toolboxes: 
+%       Mapping Toolbox
+%       Statistics and Machine Learning
+%
+% Requires modified/custom functions and files:
+%   IKNOS toolbox - functions for zero-offset correction and dive analysis
+%   are required (included in GitHub repository)
+%
+%   For Dive Processing Step 1 (non-WC data imports):
+%       smruTDR_import.m
+%       KamiTDR_import.m
+%       KamiIndex.csv
+%
+%   For Dive Processing Step 2 (full resolution ZOC and Dive Analysis):
+%       DA_data_compiler.m
+%       ChangeFormat_DA.m
 %       MetaData.mat
-%   For Step 3 (subsample to 8 sec, ZOC and Dive Analysis):
-%       DA_data_compiler_V4.m
-%       subsample_DA_V4_2.m
-%       iknos_DA.m
 %
-% This process should not be run in parallel (or in multiple instances of matlab) as the iknos_da 
+%   For Dive Processing Step 3 (subsample to 8 sec, ZOC and Dive Analysis):
+%       DA_data_compiler.m
+%       subsample_DA.m
+%       MetaData.mat
+%
+% This process should NOT be run in parallel (or in multiple instances of matlab) as the iknos_da 
 % function may writes temporary files - if multiple instances are run, this could mix tdr records 
 % together.
 %
@@ -19,6 +31,8 @@
 % Created on: 18-May-2022
 %
 % Version 4: 
+%
+% Dive Processing
 % Step 1: load SMRU text files and convert to *tdr_raw.csv, then will check and correct for 
 % broken dives and save as *_clean_tdr.csv
 %
@@ -35,7 +49,7 @@
 % 29-Dec-2022 - changed function names and updated inputs for Step 3
 % 02-Mar-2023 - small tweaks (A.Favilla)
 % 12-Apr-2023 - adding all data processing steps and writing some DiveProcessing steps to run from
-% All_Filenames.mat
+%               All_Filenames.mat
 % 21-Jun-2023 - adding some notes and step for generating mat files
 % 03-Jul-2023 - added filename change for SMRU tdr raw/clean files
 % 24-Jul-2023 - Updated script and function names, added annotation, removed matfile creationg and 

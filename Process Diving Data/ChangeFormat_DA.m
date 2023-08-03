@@ -7,8 +7,8 @@
 %
 %Requires IKNOS toolbox
 %Requires functions: iknos_da
-%                    DA_data_compiler_V4
-%                    yt_findclosest_RRH
+%                    DA_data_compiler
+%                    iknos_findclosest_RRH
 %                    resolution_DepthRes
 %
 %Version 4.2: incorportates new SMRU tdr_clean files and uses datetime
