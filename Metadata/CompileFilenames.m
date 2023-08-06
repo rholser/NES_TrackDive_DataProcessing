@@ -18,9 +18,14 @@
 %               desktop
 % 17-Apr-2023 - Added other Raw GPS filename endings.
 % 24-Jul-2023 - Adds user-selected output folder
+% 04-Aug-2023 - Adds user-selevted drive to search through (makes switching
+%               computers/drives easier)
 
 clear
 load('MetaData.mat')
+
+infolder=uigetdir('C:\','Drive to search');
+
 
 %% TrackAniMotumFiles: TOPPID, foieGras filename
 
@@ -29,7 +34,7 @@ TrackAniMotumFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID
     'VariableTypes',{'double','string','string'});
 
 %Find all files with aniMotum_crw in filename
-files=dir('H:\Tracking Diving 2004-2020\**\*_aniMotum_crw.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*_aniMotum_crw.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -53,7 +58,7 @@ ArgosFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','filen
     'VariableTypes',{'double','string','string'});
 
 %Find all files with RawArgos in filename
-files=dir('H:\Tracking Diving 2004-2020\**\*RawArgos.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*RawArgos.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -77,9 +82,9 @@ GPSFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','filenam
     'VariableTypes',{'double','string','string'});
 
 %Find all files with FastGPS in filename
-files1=dir('H:\Tracking Diving 2004-2020\**\*FastGPS.csv');
-files2=dir('H:\Tracking Diving 2004-2020\**\*Locations.csv');
-files3=dir('H:\Tracking Diving 2004-2020\**\*GPSRaw.csv');
+files1=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*FastGPS.csv'));
+files2=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*Locations.csv'));
+files3=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*GPSRaw.csv'));
 files=[files1; files2; files3];
 
 for i=1:size(files,1)
@@ -105,7 +110,7 @@ TrackCleanFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','
     'VariableTypes',{'double','string','string'});
 
 %Find all files with pre_aniMotum in filename
-files=dir('H:\Tracking Diving 2004-2020\**\*pre_aniMotum.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\**\*pre_aniMotum.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -128,13 +133,13 @@ TDRRawFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','file
     'VariableTypes',{'double','string','string'});
 
 %Find all files with Archive in filename
-files1=dir('H:\Tracking Diving 2004-2020\TDRs\**\*Archive.csv');
+files1=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*Archive.csv'));
 %Find all files with tdr_raw in filename
-files2=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv');
+files2=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv'));
 %Find all files with Kami_tdr in filename
-files3=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv');
+files3=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv'));
 %Find all files with Stroke_tdr in filename
-files4=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv');
+files4=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv'));
 files=[files1; files2; files3; files4];
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
@@ -163,7 +168,7 @@ TDRCleanFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','fi
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -191,7 +196,7 @@ TDRZOCFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','file
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full_iknos_rawzoc_data in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -219,7 +224,7 @@ TDRDiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID',
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -247,7 +252,7 @@ TDRSubDiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPI
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _SubSample_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -275,13 +280,13 @@ TDR2RawFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','fil
     'VariableTypes',{'double','string','string'});
 
 %Find all files with Archive in filename
-files1=dir('H:\Tracking Diving 2004-2020\TDRs\**\*Archive.csv');
+files1=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*Archive.csv'));
 %Find all files with tdr_raw in filename
-files2=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv');
+files2=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv'));
 %Find all files with Kami_tdr in filename
-files3=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv');
+files3=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv'));
 %Find all files with Stroke_tdr in filename
-files4=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv');
+files4=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv'));
 files=[files1; files2; files3; files4];
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
@@ -310,7 +315,7 @@ TDR2CleanFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','f
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -338,7 +343,7 @@ TDR2ZOCFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','fil
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full_iknos_rawzoc_data in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -367,7 +372,7 @@ TDR2DiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID'
 
 
 %Find all files with _full_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -395,7 +400,7 @@ TDR2SubDiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPP
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _SubSample_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -423,13 +428,13 @@ TDR3RawFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','fil
     'VariableTypes',{'double','string','string'});
 
 %Find all files with Archive in filename
-files1=dir('H:\Tracking Diving 2004-2020\TDRs\**\*Archive.csv');
+files1=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*Archive.csv'));
 %Find all files with tdr_raw in filename
-files2=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv');
+files2=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_tdr_raw.csv'));
 %Find all files with Kami_tdr in filename
-files3=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv');
+files3=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Kami_tdr.csv'));
 %Find all files with Stroke_tdr in filename
-files4=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv');
+files4=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_Stroke_tdr.csv'));
 files=[files1; files2; files3; files4];
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
@@ -458,7 +463,7 @@ TDR3CleanFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','f
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full.csv'));
 for i=1:size(files,1)
     %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -486,7 +491,7 @@ TDR3ZOCFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID','fil
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _full_iknos_rawzoc_data in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_rawzoc_data.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -515,7 +520,7 @@ TDR3DiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPPID'
 
 
 %Find all files with _full_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_full_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));
@@ -543,7 +548,7 @@ TDR3SubDiveStatFiles=table('Size',[size(MetaDataAll,1),3],'VariableNames',{'TOPP
     'VariableTypes',{'double','string','string'});
 
 %Find all files with _SubSample_iknos_DiveStat in filename
-files=dir('H:\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv');
+files=dir(strcat(infolder,'\Tracking Diving 2004-2020\TDRs\**\*_SubSample_iknos_DiveStat.csv'));
 for i=1:size(files,1)
    %Pull TOPPID directly from filename
     TOPPID=str2double(strtok(files(i).name,'_'));

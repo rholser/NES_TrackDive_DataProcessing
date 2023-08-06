@@ -11,7 +11,6 @@
 % 21-Jun-2023 - added a datetime conversion try for TrackClean files
 
 clear
-%cd 'D:\Dropbox\MATLAB\Projects\Eseal Data Processing - NetCDF\';
 load('All_Filenames.mat');
 load('MetaData.mat');
 

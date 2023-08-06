@@ -25,13 +25,17 @@
 % 17-Mar-2023 - Additions and adjustments to global attributes
 % 19-Jul-2023 - Split Level 1/2 and Level 3 file generation into separate scripts; added metadata to
 %               global attributes section
+% 05-Aug-2023 - Modifications to account for importing data from different
+%               formats; added TOPPID-specific import options for a few animals; added
+%               annotation; added user-selected (ui) output folder
+% 06-Aug-2023 - Added global attribute
 
 clear
 load('MetaData.mat');
-folder='F:\Tracking Diving 2004-2020\V1 NetCDF Files';
+folder=uigetdir('C:\','File Output Folder');
 
 tic
-for i=1:644
+for i=1:size(TagMetaDataAll,1)
 
     load('All_Filenames.mat');
 
@@ -39,7 +43,6 @@ for i=1:644
 
     %find indices for current deployment in other metadata structures
     j=find(MetaDataAll.TOPPID==TOPPID);
-    k=find(ForagingSuccessAll.TOPPID==TOPPID);
     
     %Set netCDF format
     oldFormat = netcdf.setDefaultFormat('NC_FORMAT_NETCDF4');
@@ -70,6 +73,12 @@ for i=1:644
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_R_Version", '4.2.1');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_aniMotum_Version", '1.1-04');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_IKNOS_DA-ZOC_Version", '2.3/1.2');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_Contents", ...
+        ['This file contains raw and curated biologging data from one deployment (single individual,' ...
+        'single trip). Both tracking data and dive data are provided, if available.' ...
+        'For diving data, curated data have been zero-offset corrected using custom code.' ...
+        'For additional processing details please see the associated paper (Costa et al., 2023).' ...
+        'Processed data are also available at https://doi.org/10.7291/D18D7W']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Owner", 'Daniel Costa');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Public",...
         ['Yes: data can be used freely as long as data owner is properly cited. We strongly ' ...
@@ -79,8 +88,9 @@ for i=1:644
         'of this organism and the considerable effort required to collect these data.']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper", '');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper_DOI", '');
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", '');
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", ['Costa, Daniel et al. (2023), ' ...
+        'Northern Elephant Seal Tracking and Diving Data - Raw, Dryad, Dataset, https://doi.org/10.7291/D10D61']);
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '10.7291/D10D61');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Type", 'Tracking and diving time-series data');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Assembly_By", 'UCSC/Rachel Holser');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Timezone", 'UTC');
@@ -92,13 +102,8 @@ for i=1:644
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_Sex", string(MetaDataAll.Sex(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_AgeClass", string(MetaDataAll.AgeClass(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_BirthYear", MetaDataAll.BirthYear(j));
-    if isnan(ForagingSuccessAll.PupMass(k))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'N/A');
-    elseif ForagingSuccessAll.PupMass(k)==0
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'N');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'Y');
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", MetaDataAll.HadPup(j));
+
     %Create list of TOPP IDs for other deployments on same animal
     rows=find(strcmp(MetaDataAll.FieldID(j),MetaDataAll.FieldID));
     AllDeployments=strjoin(string(MetaDataAll.TOPPID(rows,1)));
@@ -107,7 +112,7 @@ for i=1:644
 
     %%%%% Deployment MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ID",TOPPID);
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Year", string(year(MetaDataAll.DepartDate(j))));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Year", year(MetaDataAll.DepartDate(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Season", string(MetaDataAll.Season(j)));
     if isnat(MetaDataAll.ArriveDate(j))
         netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_InstrumentsRecovered?", 'N');
@@ -115,7 +120,7 @@ for i=1:644
         netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_InstrumentsRecovered?", 'Y');
     end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Manipulation?", string(MetaDataAll.Manipulation(j)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ManipulationType", '');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ManipulationType", string(MetaDataAll.ManipulationType(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Location", string(MetaDataAll.DepartLoc(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Lat", MetaDataAll.DepartLat(j));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Lon", MetaDataAll.DepartLon(j));
@@ -130,31 +135,33 @@ for i=1:644
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_QCFlag",TagMetaDataAll.TDR1QC(i));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_QCFlag",TagMetaDataAll.TDR2QC(i));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_QCFlag",TagMetaDataAll.TDR3QC(i));
-    if isnan(TagMetaDataAll.TDR1_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR1_Freq(i)==8 || TagMetaDataAll.TDR1_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR1_Freq(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_DepthResolution_m",TagMetaDataAll.TDR1_Res(i));
+    % if isnan(TagMetaDataAll.TDR1_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR1_Freq(i)==8 || TagMetaDataAll.TDR1_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 1/(60/8));
+    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR2_Freq(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_DepthResolution",TagMetaDataAll.TDR2_Res(i));
-    if isnan(TagMetaDataAll.TDR2_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR2_Freq(i)==8 || TagMetaDataAll.TDR2_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_DepthResolution_m",TagMetaDataAll.TDR2_Res(i));
+    % if isnan(TagMetaDataAll.TDR2_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR2_Freq(i)==8 || TagMetaDataAll.TDR2_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 1/(60/8));
+    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR3_Freq(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_DepthResolution",TagMetaDataAll.TDR3_Res(i));
-    if isnan(TagMetaDataAll.TDR3_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR3_Freq(i)==8 || TagMetaDataAll.TDR3_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_DepthResolution_m",TagMetaDataAll.TDR3_Res(i));
+    % if isnan(TagMetaDataAll.TDR3_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR3_Freq(i)==8 || TagMetaDataAll.TDR3_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 1/(60/8));
+    % end
 
     %%%%%Instrument MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_Manufacturer", string(TagMetaDataAll.SatTagManufacturer(i)));
@@ -179,8 +186,13 @@ for i=1:644
     try
         data=readtable(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
             ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)));
+        try
+            data(isnat(data.MsgDate),:)=[];
+        end
     end
 
+    %Create Argos Raw variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.
     netcdf.reDef(ncid);
     if exist('data','var')==1
         RawArgosdimid=netcdf.defDim(ncid,'RawArgos_rows',size(data,1));
@@ -191,8 +203,6 @@ for i=1:644
     netcdf.putAtt(RawArgosGrpID,RawArgosPTT,"Description","PTT of satellite tag");
     RawArgosDate=netcdf.defVar(RawArgosGrpID,'DATE','NC_STRING',RawArgosdimid);
     netcdf.putAtt(RawArgosGrpID,RawArgosDate,"Description","Date of Argos-based location estimate");
-    %RawArgosTime=netcdf.defVar(RawArgosGrpID,'PASS_TIME','NC_STRING',RawArgosdimid);
-    %netcdf.putAtt(RawArgosGrpID,RawArgosTime,"Description","Time of Argos-based location estimate");
     RawArgosClass=netcdf.defVar(RawArgosGrpID,'CLASS','NC_STRING',RawArgosdimid);
     netcdf.putAtt(RawArgosGrpID,RawArgosClass,"Description","Location class of Argos-based location estimate");
     RawArgosLat1=netcdf.defVar(RawArgosGrpID,'LAT1','NC_DOUBLE',RawArgosdimid);
@@ -209,20 +219,16 @@ for i=1:644
     netcdf.putAtt(RawArgosGrpID,RawArgosEOR,"Description","");
     netcdf.endDef(ncid);
 
+    % If data are available, write to RawArgos variables
     if exist('data','var')==1
-        %% Identify format of input data
-        %this is WC downloaded RawArgos data
-        if sum(strcmp(data.Properties.VariableNames,'dates'))>0
-            netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.pttid)
-            netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.dates))
-            netcdf.putVar(RawArgosGrpID,RawArgosClass,data.lq)
-            netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.lat1)
-            netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.lon1)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.semimajor)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.semiminor)
-            netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.eor)
-            
-        elseif strcmp(data.Properties.VariableNames{1},'Prog')==1 && strcmp(data.Properties.VariableNames{2},'PTT')==1
+        % Identify format of input data and alter import options as needed          
+        if strcmp(data.Properties.VariableNames{1},'Prog')==1 && strcmp(data.Properties.VariableNames{2},'PTT')==1
+            opts=detectImportOptions(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
+                ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)));
+            opts = setvartype(opts,{'Class'},'char');
+            data=readtable(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
+                ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)),opts);
+            data(isnat(data.MsgDate),:)=[];
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
             netcdf.putVar(RawArgosGrpID,RawArgosDate,string(datetime(data.MsgDate+data.MsgTime,"Format","MM/dd/uuuu HH:mm:ss")))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.Class)
@@ -232,20 +238,20 @@ for i=1:644
             netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.ErrorSemi_minorAxis)
             netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.ErrorEllipseOrientation)
 
-            %this is SMRU data
-        elseif strcmp(argosdata.Properties.VariableNames{1},'REF')==1 || strcmp(argosdata.Properties.VariableNames{1},'ref')==1
+        %this is SMRU data
+        elseif contains(data.Properties.VariableNames{1},'REF','IgnoreCase',true)==1
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
             netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.D_DATE))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.LQ)
             netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.LAT)
             netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.LON)
-            if sum(strcmp(argosdata.Properties.VariableNames,'SEMI_MAJOR_AXIS'))==1
+            if sum(strcmp(data.Properties.VariableNames,'SEMI_MAJOR_AXIS'))==1
                 netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.SEMI_MAJOR_AXIS)
                 netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.SEMI_MINOR_AXIS)
                 netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.ELLIPSE_ORIENTATION)
             end
 
-        elseif strcmp(argosdata.Properties.VariableNames{1},'Program')==1
+        elseif strcmp(data.Properties.VariableNames{1},'Program')==1
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
             netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.LocationDate))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.LocationClass)
@@ -255,8 +261,8 @@ for i=1:644
             netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.Semi_minorAxis)
             netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.EllipseOrientation)
 
-            %not really sure what this format this is...ha
-        elseif sum(strcmp(argosdata.Properties.VariableNames,'PlatformIDNo'))>0
+        %not really sure what this format this is...ha
+        elseif sum(strcmp(data.Properties.VariableNames,'PlatformIDNo'))>0
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PlatformIDNo_)
             netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.Loc_Date))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.Loc_Quality)
@@ -266,7 +272,7 @@ for i=1:644
             netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.Semi_minorAxis)
             netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.EllipseOrientation)
 
-        elseif strcmp(argosdata.Properties.VariableNames{1},'DeployID')==1 && strcmp(argosdata.Properties.VariableNames{2},'PTT')==1
+        elseif strcmp(data.Properties.VariableNames{1},'DeployID')==1 && strcmp(data.Properties.VariableNames{2},'PTT')==1
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
             netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.Date))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.LocationQuality)
@@ -276,25 +282,48 @@ for i=1:644
             netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.Semi_minorAxis)
             netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.EllipseOrientation)
 
-        elseif strcmp(argosdata.Properties.VariableNames{1},'TOPPID')==1
-            netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
-            netcdf.putVar(RawArgosGrpID,RawArgosDate,string(datetime(argosdata.JulDate,'ConvertFrom','datenum')))
-            netcdf.putVar(RawArgosGrpID,RawArgosClass,data.LocationClass)
-            netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.Latitude)
-            netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.Longitude)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.SemiMajorAxis)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.SemiMinorAxis)
-            netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.EllipseOrientation)
+        elseif strcmp(data.Properties.VariableNames{1},'TOPPID')==1
+            opts=detectImportOptions(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
+                ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)));
+            try
+                opts = setvartype(opts,{'Class'},'char');
+                data=readtable(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
+                    ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)),opts);
+                netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
+                netcdf.putVar(RawArgosGrpID,RawArgosDate,string(datetime(argosdata.JulDate,'ConvertFrom','datenum')))
+                netcdf.putVar(RawArgosGrpID,RawArgosClass,data.LocationClass)
+                netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.Latitude)
+                netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.Longitude)
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.SemiMajorAxis)
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.SemiMinorAxis)
+                netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.EllipseOrientation)
+            end
+            try
+                opts = setvartype(opts,{'lq'},'char');
+                data=readtable(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
+                    ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)),opts);
+                netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.pttid)
+                netcdf.putVar(RawArgosGrpID,RawArgosDate,data.dates)
+                netcdf.putVar(RawArgosGrpID,RawArgosClass,char(data.lq))
+                netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.lat1)
+                netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.lon1)
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.semimajor)
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.semiminor)
+                netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.eor)
+            end
 
         elseif sum(strcmp(data.Properties.VariableNames,'vernacular_name'))>0
+            [~,~,~,data.hour,data.min,data.sec]=datevec(data.time);
             netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.PTT)
-            netcdf.putVar(RawArgosGrpID,RawArgosDate,string(datetime(data.year,data.month,data.day,data.time)))
+            netcdf.putVar(RawArgosGrpID,RawArgosDate,string(datetime(data.year,data.month,data.day,data.hour,data.min,data.sec)))
             netcdf.putVar(RawArgosGrpID,RawArgosClass,data.location_quality)
             netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.decimal_latitude)
             netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.decimal_longitude)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.semimajor)
-            netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.semiminor)
-            netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.eor)
+            if sum(strcmp(data.Properties.VariableNames,'semimajor'))==1
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.semimajor)
+                netcdf.putVar(RawArgosGrpID,RawArgosSemiMin,data.semiminor)
+                netcdf.putVar(RawArgosGrpID,RawArgosEOR,data.eor)
+            end
         end
     end
     clear data
@@ -305,6 +334,8 @@ for i=1:644
             GPSFiles.file(GPSFiles.TOPPID==TOPPID)), "HeaderLines",3);
     end
 
+    %Create GPS Raw variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.
     netcdf.reDef(ncid);
     if exist('data','var')==1
         RawGPSdimid=netcdf.defDim(ncid,'RawGPS_rows',size(data,1));
@@ -325,13 +356,13 @@ for i=1:644
     netcdf.putAtt(RawGPSGrpID,RawGPSLon,'Units','decimal degrees');
     netcdf.endDef(ncid);
    
+    % If data are available, write to RawArgos variables
     if exist('data','var')==1
         netcdf.putVar(RawGPSGrpID,RawGPSDate,string(data.Day))
         netcdf.putVar(RawGPSGrpID,RawGPSTime,string(data.Time))
         netcdf.putVar(RawGPSGrpID,RawGPSSats,data.Satellites)
         netcdf.putVar(RawGPSGrpID,RawGPSLat,data.Latitude)
         netcdf.putVar(RawGPSGrpID,RawGPSLon,data.Longitude)
-    else
     end
     clear data
 
@@ -341,7 +372,9 @@ for i=1:644
             TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID)));
         data(isnan(data.Depth),:)=[];
     end
-
+    
+    %Create TDR1 Raw variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.
     netcdf.reDef(ncid);
     if exist('data','var')==1
         RawTDR1dimid=netcdf.defDim(ncid,'RawTDR1_rows',size(data,1));
@@ -354,28 +387,27 @@ for i=1:644
     RawTDR1Light=netcdf.defVar(RawTDR1GrpID,'LIGHT','NC_DOUBLE',RawTDR1dimid);
     netcdf.endDef(ncid);
 
+    %If data are available, write to variables
     if exist('data','var')==1
         %Set up different imports to account for different instrument types/formats
         %Wildlife Computers
         if contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'out-Archive')==1
             netcdf.putVar(RawTDR1GrpID,RawTDR1Date,string(data.Time));
             netcdf.putVar(RawTDR1GrpID,RawTDR1Depth,data.Depth);
-            data_names=data.Properties.VariableNames;
             m=size(data,2);
-            %SMRU
-        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'tdr')==1
-            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,data.Time);
+        %SMRU
+        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'tdr') && ~contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,string(data.Time));
             netcdf.putVar(RawTDR1GrpID,RawTDR1Depth,data.Depth);
-            %Little Leonardo Kami
-        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami')==1
-            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,data.Time);
+        %Little Leonardo Kami
+        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR1GrpID,RawTDR1Depth,data.Depth);
-            %Little Leonardo Stroke
-        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'stroke')==1
-            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,data.Time);
+        %Little Leonardo Stroke
+        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'stroke','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR1GrpID,RawTDR1Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR1GrpID,RawTDR1Depth,data.Depth);
         end
-    else
     end
     clear data data_names
 
@@ -386,6 +418,8 @@ for i=1:644
             data(isnan(data.Depth),:)=[];
     end
 
+    %Create TDR2 Raw variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.
     netcdf.reDef(ncid);
     if exist('data','var')==1
         RawTDR2dimid=netcdf.defDim(ncid,'RawTDR2_rows',size(data,1));
@@ -397,31 +431,37 @@ for i=1:644
     RawTDR2Temp=netcdf.defVar(RawTDR2GrpID,'EXTERNAL_TEMP','NC_DOUBLE',RawTDR2dimid);
     RawTDR2Light=netcdf.defVar(RawTDR2GrpID,'LIGHT','NC_DOUBLE',RawTDR2dimid);
     netcdf.endDef(ncid);
+    
+    %If data are available, write to variables
     if exist('data','var')==1
         %Set up different imports to account for different instrument types/formats
         %Wildlife Computers - may include light and temp
         if contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'out-Archive')==1
+            if TOPPID==2013041 || TOPPID==2013043 || TOPPID==2013045 || TOPPID==2013047 || TOPPID==2015006
+                netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Var1));
+                netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Var2);
+                m=size(data,2);
+            else
+                netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Time));
+                netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
+                m=size(data,2);
+            end
+            %SMRU
+        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'tdr') && ~contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
             netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Time));
             netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
-            data_names=data.Properties.VariableNames;
-            m=size(data,2);
-            %SMRU
-        elseif contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'tdr')==1
-            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,data.Time);
-            netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
             %Little Leonardo Kami
-        elseif contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'kami')==1
-            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,data.Time);
+        elseif contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
             %Little Leonardo Stroke
-        elseif contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'stroke')==1
-            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,data.Time);
+        elseif contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'stroke','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
         end
         netcdf.putAtt(RawTDR2GrpID,RawTDR2Temp,'Units','Degrees C');
-    else
     end
-    clear data data_names
+    clear data
 
     %TDR3 Raw - RawTDR3GrpID
     try
@@ -429,7 +469,9 @@ for i=1:644
             TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID)));
         data(isnan(data.Depth),:)=[];
     end
-    netcdf.reDef(ncid);
+
+    %Create TDR3 Raw variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.netcdf.reDef(ncid);
     if exist('data','var')==1
         RawTDR3dimid=netcdf.defDim(ncid,'RawTDR3_rows',size(data,1));
     else
@@ -441,40 +483,50 @@ for i=1:644
     RawTDR3Light=netcdf.defVar(RawTDR3GrpID,'LIGHT','NC_DOUBLE',RawTDR3dimid);
     netcdf.endDef(ncid);
 
+    %If data are available, write to variables
     if exist('data','var')==1
         %Set up different imports to account for different instrument types/formats
         %Wildlife Computers - may include light and temp
         if contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'out-Archive')==1
             netcdf.putVar(RawTDR3GrpID,RawTDR3Date,string(data.Time));
             netcdf.putVar(RawTDR3GrpID,RawTDR3Depth,data.Depth);
-            data_names=data.Properties.VariableNames;
             m=size(data,2);
             %SMRU
-        elseif contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'tdr')==1
-            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,data.Time);
+        elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'tdr') && ~contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,string(data.Time));
             netcdf.putVar(RawTDR3GrpID,RawTDR3Depth,data.Depth);
             %Little Leonardo Kami
-        elseif contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'kami')==1
-            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,data.Time);
+        elseif contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR3GrpID,RawTDR3Depth,data.Depth);
             %Little Leonardo Stroke
-        elseif contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'stroke')==1
-            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,data.Time);
+        elseif contains(TDR3RawFiles.filename(TDR3RawFiles.TOPPID==TOPPID),'stroke','IgnoreCase',true)==1
+            netcdf.putVar(RawTDR3GrpID,RawTDR3Date,string(datetime(data.Date+data.Time,'Format','dd-MMM-uuuu HH:mm:ss')));
             netcdf.putVar(RawTDR3GrpID,RawTDR3Depth,data.Depth);
         end
         netcdf.putAtt(RawTDR3GrpID,RawTDR3Temp,'Units','Degrees C');
-    else
     end
-    clear data data_names
+    clear data
 
     %% Curated Data Group
     % Track Clean
     try
+        opts=detectImportOptions(strcat(TrackCleanFiles.folder(TrackCleanFiles.TOPPID==TOPPID),'\',...
+            TrackCleanFiles.filename(TrackCleanFiles.TOPPID==TOPPID)));
+        opts = setvartype(opts,{'LocationClass'},'char');
+        % modified import options for certain animals
+        if TOPPID==2016019
+            opts = setvartype(opts,'Date','datetime');
+            opts = setvaropts(opts,'Date','InputFormat','HH:mm:ss dd-MMM-uuuu', ...
+                'DatetimeFormat','dd-MMM-uuuu HH:mm:ss');
+        end
         data=readtable(strcat(TrackCleanFiles.folder(TrackCleanFiles.TOPPID==TOPPID),'\',...
             TrackCleanFiles.filename(TrackCleanFiles.TOPPID==TOPPID)));
         data(isnat(data.Date),:)=[];
     end
-
+    
+    %Create Track Clear variables and attributes using size of data file if it exists,
+    %otherwise variable size = 0.netcdf.reDef(ncid);
     netcdf.reDef(ncid);
     if exist('data','var')==1
         CleanTrackdimid=netcdf.defDim(ncid,'CuratedLocations_rows',size(data,1));
@@ -497,11 +549,9 @@ for i=1:644
     netcdf.putAtt(CuratedTrackGrpID,CleanTrackSMinA,"Description","Semi-minor axis of Argos-based location estimate’s error ellipse");
     CleanTrackEllipseOr=netcdf.defVar(CuratedTrackGrpID,'ELLIPSE_ORIENTATION','NC_DOUBLE',CleanTrackdimid);
     netcdf.putAtt(CuratedTrackGrpID,CleanTrackEllipseOr,"Description","Semi-major axis orientation from north");
-    %%%%can we have group attributes?  Need to figure out where to put this
-    %%%%information
-    %netcdf.putAtt(ncid,CuratedTrackGrpID,"Description", "Locations, location classes, and" + ...
-    %    " errors (if available) of Argos and GPS data combined and prepared for AniMotum processing.");
     netcdf.endDef(ncid);
+    
+    %If data are available, write to variables
     if exist('data','var')==1
         netcdf.putVar(CuratedTrackGrpID,CleanTrackDate,string(data.Date));
         netcdf.putVar(CuratedTrackGrpID,CleanTrackLat,data.Latitude);
@@ -607,12 +657,12 @@ for i=1:644
         netcdf.putVar(ZOCTDR3GrpID,ZOCTDR3Date,data(:,2));
         netcdf.putVar(ZOCTDR3GrpID,ZOCTDR3CorrDepth,data(:,1));
         netcdf.putVar(ZOCTDR3GrpID,ZOCTDR3Depth,data(:,3));
-    else
     end
     clear data
-    
-netcdf.close(ncid);
 
-clearvars -except MetaDataAll TagMetaDataAll i folder ForagingSuccessAll
+    %Close netCDF file when finished
+    netcdf.close(ncid);
+
+    clearvars -except MetaDataAll TagMetaDataAll i folder ForagingSuccessAll
 end
 toc

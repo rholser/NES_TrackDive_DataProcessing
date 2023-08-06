@@ -12,12 +12,9 @@
 %
 % V2.1
 % Created by: Rachel Holser
-% Created on: 16-Nov-2022bn
-%                                              op00000000000000000000000000000000000000000000000000000000000000000000000000
-%                                              m\\\\\\\\\\\,677777777777777777777777777777777777777777777777777777u8
-% Creates two netCDF files for each animal (one for raw and curated data,
-% one for processed data). Both files will contain all of the same global
-% attributes so metadata are available in both files.
+% Created on: 16-Nov-2022
+%
+% Creates netCDF files for each animal's processed data. 
 %
 % V.2.2
 % 04-Dec-2022 - Changed variable naming to remove redundant identifiers
@@ -27,13 +24,16 @@
 % 17-Mar-2023 - Additions and adjustments to global attributes
 % 19-Jul-2023 - Split Level 1/2 and Level 3 file generation into separate scripts; added metadata to
 %               global attributes section
+% 05-Aug-2023 - Change _SUB to _8S and duplicate 8second full-res data to
+%               _8S structures.
+% 06-Aug-2023 - Added global attriubute
 
 clear
 load('MetaData.mat');
-folder='D:\Dropbox\MATLAB\V1 NetCDF Files';
+folder=uigetdir('C:\','File Output Folder');
 
 tic
-for i=1:643
+for i=1:size(TagMetaDataAll,1)
     
     load('All_Filenames.mat');
 
@@ -41,7 +41,6 @@ for i=1:643
 
     %find indices for current deployment in other metadata structures
     j=find(MetaDataAll.TOPPID==TOPPID);
-    k=find(ForagingSuccessAll.TOPPID==TOPPID);
     
     %Set netCDF format
     oldFormat = netcdf.setDefaultFormat('NC_FORMAT_NETCDF4');
@@ -55,11 +54,11 @@ for i=1:643
 
     %Create Data Groups
     TDR1GrpID=netcdf.defGrp(ncid,'TDR1');
-    TDR1SubGrpID=netcdf.defGrp(ncid,'TDR1_SUB');
+    TDR1SubGrpID=netcdf.defGrp(ncid,'TDR1_8S');
     TDR2GrpID=netcdf.defGrp(ncid,'TDR2');
-    TDR2SubGrpID=netcdf.defGrp(ncid,'TDR2_SUB');
+    TDR2SubGrpID=netcdf.defGrp(ncid,'TDR2_8S');
     TDR3GrpID=netcdf.defGrp(ncid,'TDR3');
-    TDR3SubGrpID=netcdf.defGrp(ncid,'TDR3_SUB');
+    TDR3SubGrpID=netcdf.defGrp(ncid,'TDR3_8S');
     AniMotumGrpID=netcdf.defGrp(ncid,'TRACK');
 
     %Global Attributes
@@ -69,6 +68,14 @@ for i=1:643
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_R_Version", '4.2.1');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_aniMotum_Version", '1.1-04');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_IKNOS_DA-ZOC_Version", '2.3/1.2');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_Contents", ...
+        ['This file contains processed biologging data from one deployment (single individual,' ...
+        'single trip). Both tracking data (processed with aniMotum) and dive statistics' ...
+        '(processed with custom code) are provided if available. Dive statistics from the ' ...
+        'native sampling rate of the instrument (e.g. TDR1) and at 8 second (or 0.125 Hz) sampling ' ...
+        'intervals (TDR1_8S) are provided. For additional processing details please see the ' ...
+        'associated paper (Costa et al., 2023).' ...
+        'Raw data are also available at https://doi.org/10.7291/D10D61']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Owner", 'Daniel Costa');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Public",...
         ['Yes: data can be used freely as long as data owner is properly cited. We strongly ' ...
@@ -78,8 +85,9 @@ for i=1:643
         'of this organism and the considerable effort required to collect these data.']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper", '');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper_DOI", '');
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", '');
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", ['Costa, Daniel et al. (2023), ' ...
+        'Northern Elephant Seal Tracking and Diving Data - Processed, Dryad, Dataset, https://doi.org/10.7291/D18D7W']);
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '10.7291/D18D7W');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Type", 'Tracking and diving time-series data');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Assembly_By", 'UCSC/Rachel Holser');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Timezone", 'UTC');
@@ -91,13 +99,8 @@ for i=1:643
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_Sex", string(MetaDataAll.Sex(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_AgeClass", string(MetaDataAll.AgeClass(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_BirthYear", MetaDataAll.BirthYear(j));
-    if isnan(ForagingSuccessAll.PupMass(k))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'N/A');
-    elseif ForagingSuccessAll.PupMass(k)==0
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'N');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", 'Y');
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Animal_HadPup", MetaDataAll.HadPup(j));
+
     %Create list of TOPP IDs for other deployments on same animal
     rows=find(strcmp(MetaDataAll.FieldID(j),MetaDataAll.FieldID));
     AllDeployments=strjoin(string(MetaDataAll.TOPPID(rows,1)));
@@ -106,7 +109,7 @@ for i=1:643
 
     %%%%% Deployment MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ID",TOPPID);
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Year", string(year(MetaDataAll.DepartDate(j))));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Year", year(MetaDataAll.DepartDate(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Season", string(MetaDataAll.Season(j)));
     if isnat(MetaDataAll.ArriveDate(j))
         netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_InstrumentsRecovered?", 'N');
@@ -114,8 +117,7 @@ for i=1:643
         netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_InstrumentsRecovered?", 'Y');
     end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Manipulation?", string(MetaDataAll.Manipulation(j)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ManipulationType", '');
-
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ManipulationType", string(MetaDataAll.ManipulationType(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Location", string(MetaDataAll.DepartLoc(j)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Lat", MetaDataAll.DepartLat(j));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Departure_Lon", MetaDataAll.DepartLon(j));
@@ -130,31 +132,33 @@ for i=1:643
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_QCFlag",TagMetaDataAll.TDR1QC(i));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_QCFlag",TagMetaDataAll.TDR2QC(i));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_QCFlag",TagMetaDataAll.TDR3QC(i));
-    if isnan(TagMetaDataAll.TDR1_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR1_Freq(i)==8 || TagMetaDataAll.TDR1_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR1_Freq(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_DepthResolution_m",TagMetaDataAll.TDR1_Res(i));
+    % if isnan(TagMetaDataAll.TDR1_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR1_Freq(i)==8 || TagMetaDataAll.TDR1_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 1/(60/8));
+    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR2_Freq(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_DepthResolution",TagMetaDataAll.TDR2_Res(i));
-    if isnan(TagMetaDataAll.TDR2_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR2_Freq(i)==8 || TagMetaDataAll.TDR2_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_DepthResolution_m",TagMetaDataAll.TDR2_Res(i));
+    % if isnan(TagMetaDataAll.TDR2_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR2_Freq(i)==8 || TagMetaDataAll.TDR2_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 1/(60/8));
+    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR3_Freq(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_DepthResolution",TagMetaDataAll.TDR3_Res(i));
-    if isnan(TagMetaDataAll.TDR3_Freq(i))
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    elseif TagMetaDataAll.TDR3_Freq(i)==8 || TagMetaDataAll.TDR3_Freq(i)==5
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    else
-        netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 1/(60/8));
-    end
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_DepthResolution_m",TagMetaDataAll.TDR3_Res(i));
+    % if isnan(TagMetaDataAll.TDR3_Freq(i))
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
+    % elseif TagMetaDataAll.TDR3_Freq(i)==8 || TagMetaDataAll.TDR3_Freq(i)==5
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
+    % else
+    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 1/(60/8));
+    % end
 
     %%%%%Instrument MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_Manufacturer", string(TagMetaDataAll.SatTagManufacturer(i)));
@@ -295,7 +299,6 @@ for i=1:643
         netcdf.putVar(TDR1GrpID,TDR1Hour,data.Hour);
         netcdf.putVar(TDR1GrpID,TDR1Min,data.Min);
         netcdf.putVar(TDR1GrpID,TDR1Sec,data.Sec);
-    else
     end
     clear data
     
@@ -418,7 +421,6 @@ for i=1:643
         netcdf.putVar(TDR2GrpID,TDR2Hour,data.Hour);
         netcdf.putVar(TDR2GrpID,TDR2Min,data.Min);
         netcdf.putVar(TDR2GrpID,TDR2Sec,data.Sec);
-    else
     end
     clear data
 
@@ -542,16 +544,24 @@ for i=1:643
         netcdf.putVar(TDR3GrpID,TDR3Hour,data.Hour);
         netcdf.putVar(TDR3GrpID,TDR3Min,data.Min);
         netcdf.putVar(TDR3GrpID,TDR3Sec,data.Sec);
-    else
     end
     clear data
 
     % TDR1 Subset DiveStat
     %load DiveStat file
     try
-        data=readtable(strcat(TDRSubDiveStatFiles.folder(TDRSubDiveStatFiles.TOPPID==TOPPID),...
-        '\',strtok(TDRSubDiveStatFiles.filename(TDRSubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %if TDR full-resolution sampling frequency is every 8 seconds, use
+        %main DiveStat file here
+        if TagMetaDataAll.TDR1_Freq(i)==8
+            data=readtable(strcat(TDRDiveStatFiles.folder(TDRDiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDRDiveStatFiles.filename(TDRDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %otherwise, look for subsampled DiveStat
+        else
+            data=readtable(strcat(TDRSubDiveStatFiles.folder(TDRSubDiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDRSubDiveStatFiles.filename(TDRSubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        end
     end
 
     %Create a 1-D variable (length of divestat x 1) for each column of the
@@ -667,16 +677,24 @@ for i=1:643
         netcdf.putVar(TDR1SubGrpID,TDR1SubHour,data.Hour);
         netcdf.putVar(TDR1SubGrpID,TDR1SubMin,data.Min);
         netcdf.putVar(TDR1SubGrpID,TDR1SubSec,data.Sec);
-    else
     end
     clear data
 
     % TDR2Sub DiveStat
     %load DiveStat file
     try
-        data=readtable(strcat(TDR2SubDiveStatFiles.folder(TDR2SubDiveStatFiles.TOPPID==TOPPID),...
-        '\',strtok(TDR2SubDiveStatFiles.filename(TDR2SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %if TDR full-resolution sampling frequency is every 8 seconds, use
+        %main DiveStat file here
+        if TagMetaDataAll.TDR2_Freq(i)==8
+            data=readtable(strcat(TDR2DiveStatFiles.folder(TDR2DiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDR2DiveStatFiles.filename(TDR2DiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %otherwise, look for subsampled DiveStat
+        else
+            data=readtable(strcat(TDR2SubDiveStatFiles.folder(TDR2SubDiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDR2SubDiveStatFiles.filename(TDR2SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        end
     end
     %Create a 1-D variable (length of divestat x 1) for each column of the
     %DiveStat file and populate each from the loaded file
@@ -791,16 +809,24 @@ for i=1:643
         netcdf.putVar(TDR2SubGrpID,TDR2SubHour,data.Hour);
         netcdf.putVar(TDR2SubGrpID,TDR2SubMin,data.Min);
         netcdf.putVar(TDR2SubGrpID,TDR2SubSec,data.Sec);
-    else
     end
     clear data
 
     % TDR3Sub DiveStat
     %load DiveStat file
     try
-        data=readtable(strcat(TDR3SubDiveStatFiles.folder(TDR3SubDiveStatFiles.TOPPID==TOPPID),...
-        '\',strtok(TDR3SubDiveStatFiles.filename(TDR3SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %if TDR full-resolution sampling frequency is every 8 seconds, use
+        %main DiveStat file here
+        if TagMetaDataAll.TDR3_Freq(i)==8
+            data=readtable(strcat(TDR3DiveStatFiles.folder(TDR3DiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDR3DiveStatFiles.filename(TDR3DiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        %otherwise, look for subsampled DiveStat
+        else
+            data=readtable(strcat(TDR3SubDiveStatFiles.folder(TDR3SubDiveStatFiles.TOPPID==TOPPID),...
+                '\',strtok(TDR3SubDiveStatFiles.filename(TDR3SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
+            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        end
     end
 
     %Create a 1-D variable (length of divestat x 1) for each column of the
@@ -916,7 +942,6 @@ for i=1:643
         netcdf.putVar(TDR3SubGrpID,TDR3SubHour,data.Hour);
         netcdf.putVar(TDR3SubGrpID,TDR3SubMin,data.Min);
         netcdf.putVar(TDR3SubGrpID,TDR3SubSec,data.Sec);
-    else
     end
     clear data
 
@@ -969,9 +994,6 @@ for i=1:643
     AniMotumS=netcdf.defVar(AniMotumGrpID,'S',"NC_DOUBLE",TrackAniMotumdimid);
     netcdf.putAtt(AniMotumGrpID,AniMotumS,"Description"," AniMotum estimated directionless velocity");
     netcdf.putAtt(AniMotumGrpID,AniMotumS,'Units','m/s');
-    %AniMotumSse=netcdf.defVar(AniMotumGrpID,'S_SE',"NC_DOUBLE",TrackAniMotumdimid);
-    %netcdf.putAtt(AniMotumGrpID,AniMotumSse,"Description","AniMotum estimated standard deviation in directionless velocity");
-    %netcdf.putAtt(AniMotumGrpID,AniMotumSse,'Units','m/s');
     netcdf.endDef(ncid);
     if exist('data','var')==1
         netcdf.putVar(AniMotumGrpID,AniMotumDate,string(data.date));
@@ -986,12 +1008,10 @@ for i=1:643
         netcdf.putVar(AniMotumGrpID,AniMotumUse,data.u_se);
         netcdf.putVar(AniMotumGrpID,AniMotumVse,data.v_se);
         netcdf.putVar(AniMotumGrpID,AniMotumS,data.s);
-        %netcdf.putVar(AniMotumGrpID,AniMotumSse,data.s_se);
-    else
     end
     clear data
-    
-netcdf.close(ncid);
-clearvars -except MetaDataAll TagMetaDataAll i folder ForagingSuccessAll
+
+    netcdf.close(ncid);
+    clearvars -except MetaDataAll TagMetaDataAll i folder ForagingSuccessAll
 end
 toc
