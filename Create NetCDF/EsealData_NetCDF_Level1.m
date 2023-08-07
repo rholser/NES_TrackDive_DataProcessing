@@ -515,13 +515,14 @@ for i=1:size(TagMetaDataAll,1)
             TrackCleanFiles.filename(TrackCleanFiles.TOPPID==TOPPID)));
         opts = setvartype(opts,{'LocationClass'},'char');
         % modified import options for certain animals
-        if TOPPID==2016019
+        if TOPPID==2008040
+        elseif TOPPID==2016019
             opts = setvartype(opts,'Date','datetime');
             opts = setvaropts(opts,'Date','InputFormat','HH:mm:ss dd-MMM-uuuu', ...
                 'DatetimeFormat','dd-MMM-uuuu HH:mm:ss');
         end
         data=readtable(strcat(TrackCleanFiles.folder(TrackCleanFiles.TOPPID==TOPPID),'\',...
-            TrackCleanFiles.filename(TrackCleanFiles.TOPPID==TOPPID)));
+            TrackCleanFiles.filename(TrackCleanFiles.TOPPID==TOPPID)),opts);
         data(isnat(data.Date),:)=[];
     end
     
