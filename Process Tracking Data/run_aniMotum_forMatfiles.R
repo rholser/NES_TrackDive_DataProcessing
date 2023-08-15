@@ -46,7 +46,7 @@ bathylats<-ncvar_get(bathydata,"latitude")
 bathylons<-ncvar_get(bathydata,"longitude")
 bathydepths<-ncvar_get(bathydata,"topo")
 
-setwd("E:/Tracking Diving 2004-2020/All Pre aniMotum/")
+setwd("H:/Tracking Diving 2004-2020/All Pre aniMotum/")
 
 #import input data
 inputfiles<-list.files(pattern="_pre_aniMotum.csv")
@@ -57,7 +57,7 @@ inputfiles<-inputfiles[order(inputfiles)] #order by name so it's easy to catch i
 
 
 for (i in 1:length(inputfiles)){
-  setwd("E:/Tracking Diving 2004-2020/All Pre aniMotum/")
+  setwd("H:/Tracking Diving 2004-2020/All Pre aniMotum/")
   argosdata<-read.csv(inputfiles[i])
     if (nrow(argosdata)<10){
     next}
@@ -303,7 +303,7 @@ for (i in 1:length(inputfiles)){
     
     output<-grab(fitc,"p",as_sf=FALSE)
    
-    setwd("E:/Tracking Diving 2004-2020/aniMotum Output/")
+    setwd("H:/Tracking Diving 2004-2020/aniMotum Output/")
 
     newfilename=str_sub(as.character(inputfiles[i]),end=-18)
     csv2save <- paste(newfilename,'_aniMotum_crw.csv',sep='')

@@ -478,7 +478,7 @@ for j=1:size(ArgosFiles,1)
             tracklocs=sortrows(tracklocs,3);
 
             %cd 'E:/Tracking Diving 2004-2020/'
-            cd 'E:/Tracking Diving 2004-2020/All Pre aniMotum'
+            cd 'H:/Tracking Diving 2004-2020/All Pre aniMotum'
             writetable(tracklocs,strcat(num2str(TOPPID),'_', num2str(PTTID),'_GPS_Argos_pre_aniMotum.csv'))
             clear index StartTime EndTime EndLat EndLon tokeep tracklocs
         end

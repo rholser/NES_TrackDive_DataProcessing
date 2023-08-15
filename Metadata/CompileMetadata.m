@@ -64,6 +64,6 @@ TagMetaDataAll = readtable("tagmetadata.csv", opts);
 clear opts
 
 %% Save all metadata structure into single .mat file for later use
-outfolder=uigetdir('C:\','File Output Folder');
+outfolder=uigetdir('','File Output Folder');
 cd(outfolder);
 save('MetaData.mat','MetaDataAll','TagMetaDataAll')

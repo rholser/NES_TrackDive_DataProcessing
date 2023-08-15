@@ -569,7 +569,7 @@ TDR3SubDiveStatFiles(TDR3SubDiveStatFiles.TOPPID==0,:)=[];
 TDR3SubDiveStatFiles=sortrows(TDR3SubDiveStatFiles);
 clear files
 
-outfolder=uigetdir('C:\','File Output Folder');
+outfolder=uigetdir('','File Output Folder');
 cd(outfolder);
 
 save('All_Filenames.mat','TrackAniMotumFiles','ArgosFiles','GPSFiles','TrackCleanFiles', 'TDRRawFiles',...

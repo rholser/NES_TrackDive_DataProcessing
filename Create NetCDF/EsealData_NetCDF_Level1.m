@@ -29,6 +29,7 @@
 %               formats; added TOPPID-specific import options for a few animals; added
 %               annotation; added user-selected (ui) output folder
 % 06-Aug-2023 - Added global attribute
+% 14-Aug-2023 - Modified global attributes
 
 clear
 load('MetaData.mat');
@@ -48,7 +49,8 @@ for i=1:size(TagMetaDataAll,1)
     oldFormat = netcdf.setDefaultFormat('NC_FORMAT_NETCDF4');
     
     %% Create level 1&2 netCDF file, groups, and global attributes
-    filename=[folder '\' num2str(TOPPID) '_TrackTDR_RawCurated.nc'];
+    %Define filename and set to overwrite pre-existing files
+    filename=[folder '\' num2str(TOPPID) '_TrackTDR_Processed.nc'];
     ncid=netcdf.create(filename,'CLOBBER');
 
     %Raw Data Groups
@@ -66,7 +68,8 @@ for i=1:size(TagMetaDataAll,1)
     ZOCTDR2GrpID=netcdf.defGrp(ncid,'CLEAN_ZOC_TDR2');
     ZOCTDR3GrpID=netcdf.defGrp(ncid,'CLEAN_ZOC_TDR3');
 
- %Global Attributes
+
+    %Global Attributes
     %%%%% Creation/versions/permissions
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  'File_Creation_Date',string(datetime("now")));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_MATLAB_Version", version);
@@ -74,11 +77,13 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_aniMotum_Version", '1.1-04');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_IKNOS_DA-ZOC_Version", '2.3/1.2');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "File_Contents", ...
-        ['This file contains raw and curated biologging data from one deployment (single individual,' ...
-        'single trip). Both tracking data and dive data are provided, if available.' ...
-        'For diving data, curated data have been zero-offset corrected using custom code.' ...
-        'For additional processing details please see the associated paper (Costa et al., 2023).' ...
-        'Processed data are also available at https://doi.org/10.7291/D18D7W']);
+        ['This file contains processed biologging data from one deployment (single individual,' ...
+        'single trip). Both tracking data (processed with aniMotum) and dive statistics' ...
+        '(processed with custom code) are provided if available. Dive statistics from the ' ...
+        'native sampling rate of the instrument (e.g. TDR1) and at 8 second (or 0.125 Hz) sampling ' ...
+        'intervals (TDR1_8S) are provided. For additional processing details please see the ' ...
+        'associated paper (Costa et al., 2023).' ...
+        'Raw data are also available at https://doi.org/10.7291/D10D61']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Owner", 'Daniel Costa');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Public",...
         ['Yes: data can be used freely as long as data owner is properly cited. We strongly ' ...
@@ -89,8 +94,8 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper", '');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper_DOI", '');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", ['Costa, Daniel et al. (2023), ' ...
-        'Northern Elephant Seal Tracking and Diving Data - Raw, Dryad, Dataset, https://doi.org/10.7291/D10D61']);
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '10.7291/D10D61');
+        'Northern Elephant Seal Tracking and Diving Data - Processed, Dryad, Dataset, https://doi.org/10.7291/D18D7W']);
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '10.7291/D18D7W');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Type", 'Tracking and diving time-series data');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Assembly_By", 'UCSC/Rachel Holser');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Timezone", 'UTC');
@@ -113,7 +118,7 @@ for i=1:size(TagMetaDataAll,1)
     %%%%% Deployment MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_ID",TOPPID);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Year", year(MetaDataAll.DepartDate(j)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Season", string(MetaDataAll.Season(j)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_Trip", string(MetaDataAll.Season(j)));
     if isnat(MetaDataAll.ArriveDate(j))
         netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Deployment_InstrumentsRecovered?", 'N');
     else
@@ -137,48 +142,28 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_QCFlag",TagMetaDataAll.TDR3QC(i));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR1_Freq(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_DepthResolution_m",TagMetaDataAll.TDR1_Res(i));
-    % if isnan(TagMetaDataAll.TDR1_Freq(i))
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    % elseif TagMetaDataAll.TDR1_Freq(i)==8 || TagMetaDataAll.TDR1_Freq(i)==5
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 'N/A');
-    % else
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR1_SubsampledFrequency_Hz", 1/(60/8));
-    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR2_Freq(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_DepthResolution_m",TagMetaDataAll.TDR2_Res(i));
-    % if isnan(TagMetaDataAll.TDR2_Freq(i))
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    % elseif TagMetaDataAll.TDR2_Freq(i)==8 || TagMetaDataAll.TDR2_Freq(i)==5
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 'N/A');
-    % else
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR2_SubsampledFrequency_Hz", 1/(60/8));
-    % end
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SamplingFrequency_Hz", 1/(60/TagMetaDataAll.TDR3_Freq(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_DepthResolution_m",TagMetaDataAll.TDR3_Res(i));
-    % if isnan(TagMetaDataAll.TDR3_Freq(i))
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    % elseif TagMetaDataAll.TDR3_Freq(i)==8 || TagMetaDataAll.TDR3_Freq(i)==5
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 'N/A');
-    % else
-    %     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_TDR3_SubsampledFrequency_Hz", 1/(60/8));
-    % end
 
     %%%%%Instrument MetaData
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_Manufacturer", string(TagMetaDataAll.SatTagManufacturer(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_Model", string(TagMetaDataAll.SatTagType(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_ID", string(TagMetaDataAll.SatTagID(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_PTT", TagMetaDataAll.SatTagPTT(i));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Tag_Manufacturer", string(TagMetaDataAll.TDR1Manufacturer(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Tag_Model", string(TagMetaDataAll.TDR1Type(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Tag_ID", string(TagMetaDataAll.TDR1ID(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_SatTag_Comments", TagMetaDataAll.SatTagComment(i));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Manufacturer", string(TagMetaDataAll.TDR1Manufacturer(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Model", string(TagMetaDataAll.TDR1Type(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_ID", string(TagMetaDataAll.TDR1ID(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR1_Comments", string(TagMetaDataAll.TDR1Comments(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Tag_Manufacturer", string(TagMetaDataAll.TDR2Manufacturer(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Tag_Model", string(TagMetaDataAll.TDR2Type(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Tag_ID", string(TagMetaDataAll.TDR2ID(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Manufacturer", string(TagMetaDataAll.TDR2Manufacturer(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Model", string(TagMetaDataAll.TDR2Type(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_ID", string(TagMetaDataAll.TDR2ID(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR2_Comments", string(TagMetaDataAll.TDR2Comments(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Tag_Manufacturer", string(TagMetaDataAll.TDR3Manufacturer(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Tag_Model", string(TagMetaDataAll.TDR3Type(i)));
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Tag_ID", string(TagMetaDataAll.TDR3ID(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Manufacturer", string(TagMetaDataAll.TDR3Manufacturer(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Model", string(TagMetaDataAll.TDR3Type(i)));
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_ID", string(TagMetaDataAll.TDR3ID(i)));
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Tags_TDR3_Comments", string(TagMetaDataAll.TDR3Comment(i)));
 
     %% Raw Data Group
