@@ -18,7 +18,7 @@ This file contains information about the instruments deployed on each animal, ag
 needs to decide which record to prioritize and populate this spreadsheet appropriately.
 
 ## Encountering Problems?
-If code is not working as expected, please post an issue [here] (https://github.com/rholser/NES_TrackDive_DataProcessing/issues). Please provide detail about the issue - what species and instrument type are you trying to work with, and what step of the process is not working.
+If code is not working as expected, please post an issue [here](https://github.com/rholser/NES_TrackDive_DataProcessing/issues). Please provide detail about the issue - what species and instrument type are you trying to work with, and what step of the process is not working.
 
 ## Acknowledgements
 The data collection and processing associated with this repository was supported by numerous funding partners, including:
