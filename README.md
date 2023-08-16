@@ -1,4 +1,4 @@
-# Eseal NetCDF
+# NES NetCDF
 [![DOI](https://zenodo.org/badge/497213009.svg)](https://zenodo.org/badge/latestdoi/497213009)
 
 This repository contains the code used to process and quality control northern elephant seal diving and tracking data, combine processed tracks and dive statistics, and output the data for each instrument deployment into a netCDF (.nc) file. The code is built-to-purpose workflow for processing this particular data set. It could work with other species and data types but will likely require some modification, particularly regarding the parameters used to complete the zero-offset correction.
