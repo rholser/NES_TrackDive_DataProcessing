@@ -2,7 +2,9 @@
 
 This repository contains the code used to process and quality control northern elephant seal diving and tracking data, combine processed tracks and dive statistics, and output the data for each instrument deployment into a netCDF (.nc) file. The code is built-to-purpose workflow for processing this particular data set. It could work with other species and data types but will likely require some modification, particularly regarding the parameters used to complete the zero-offset correction.
 
-The script **DataProcessing.m** provides the primary workflow, with each processing step laid out in order, including intermediate metadata compilation steps required to move forward.
+The script `{DataProcessing.m}` provides the primary workflow, with each processing step laid out in order, including intermediate metadata compilation steps required to move forward.
+
+We use the R package `{aniMotum}` to generate predicted locations at regular time intervals based on the quality of the locations available from Argos and GPS. More information can be found [here](https://ianjonsen.github.io/aniMotum/).
 
 ## Getting Started
 

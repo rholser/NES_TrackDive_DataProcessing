@@ -50,7 +50,7 @@ for i=1:size(TagMetaDataAll,1)
     
     %% Create level 1&2 netCDF file, groups, and global attributes
     %Define filename and set to overwrite pre-existing files
-    filename=[folder '\' num2str(TOPPID) '_TrackTDR_Processed.nc'];
+    filename=[folder '\' num2str(TOPPID) '_TrackTDR_RawCurated.nc'];
     ncid=netcdf.create(filename,'CLOBBER');
 
     %Raw Data Groups
