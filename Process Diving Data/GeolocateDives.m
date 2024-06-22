@@ -50,19 +50,19 @@ for i=1:size(MetaDataAll,1)
             Track=removevars(Track,{'Var1'});
         end
         %Rename columns for consistency
-        Track.Properties.VariableNames = {'TOPPID','DateTime','Lon',...
+        Track.Properties.VariableNames = {'TOPPID','Time','Lon',...
             'Lat','x','y','x_se_km','y_se_km','u','v','u_se_km','v_se_km','s','s_se'};
         %Convery DateTime to JulDate
-        Track.JulDate=datenum(Track.DateTime);
+        Track.JulDate=datenum(Track.Time);
 
         %load DiveStat files and interpolate track to it
         if ~isempty(tdr1file)
             %load dive statistics file
             Dive1Stat=readtable(tdr1file);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
             %Check if tracking data extend across entire dive record
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            ind=find(Dive1Stat.Time>Track.Time(end));
             %If track is shorter than dive record, only populate the sections of the dive record
             %with tracking data
             if ~isempty(ind)
@@ -117,8 +117,8 @@ for i=1:size(MetaDataAll,1)
             %load dive statistics file
             Dive1Stat=readtable(tdr1subfile);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            ind=find(Dive1Stat.Time>Track.Time(end));
             if ~isempty(ind)
                 %Lat/lon from linear interpolation of processed track based on time
                 Dive1LatLon = iknos_interpol_linear_2(table2array(Track(:,{'JulDate','Lat',...
@@ -169,8 +169,8 @@ for i=1:size(MetaDataAll,1)
             %load dive statistics file
             Dive1Stat=readtable(tdr2file);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            ind=find(Dive1Stat.Time>Track.Time(end));
             if ~isempty(ind)
                 %Lat/lon from linear interpolation of processed track based on time
                 Dive1LatLon = iknos_interpol_linear_2(table2array(Track(:,{'JulDate','Lat',...
@@ -222,8 +222,8 @@ for i=1:size(MetaDataAll,1)
             %load dive statistics file
             Dive1Stat=readtable(tdr2subfile);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            ind=find(Dive1Stat.Time>Track.Time(end));
             if ~isempty(ind)
                 %Lat/lon from linear interpolation of processed track based on time
                 Dive1LatLon = iknos_interpol_linear_2(table2array(Track(:,{'JulDate','Lat',...
@@ -275,8 +275,8 @@ for i=1:size(MetaDataAll,1)
             %load dive statistics file
             Dive1Stat=readtable(tdr3file);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            ind=find(Dive1Stat.Time>Track.Time(end));
             if ~isempty(ind)
                 %Lat/lon from linear interpolation of processed track based on time
                 Dive1LatLon = iknos_interpol_linear_2(table2array(Track(:,{'JulDate','Lat',...
@@ -329,8 +329,8 @@ for i=1:size(MetaDataAll,1)
             %load dive statistics file
             Dive1Stat=readtable(tdr3subfile);
             %Convert julian date to datetime
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
-            ind=find(Dive1Stat.DateTime>Track.DateTime(end));
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            ind=find(Dive1Stat.Time>Track.Time(end));
             if ~isempty(ind)
                 %Lat/lon from linear interpolation of processed track based on time
                 Dive1LatLon = iknos_interpol_linear_2(table2array(Track(:,{'JulDate','Lat',...
@@ -382,7 +382,7 @@ for i=1:size(MetaDataAll,1)
     else
         if ~isempty(tdr1file)
             Dive1Stat=readtable(tdr1file);
-            Dive1Stat.DateTime=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
+            Dive1Stat.Time=datetime(Dive1Stat.JulDate,"ConvertFrom","datenum");
             Dive1Stat.Lat(:)=NaN;
             Dive1Stat.Lon(:)=NaN;
             Dive1Stat.Lat_se_km(:)=NaN;
@@ -393,7 +393,7 @@ for i=1:size(MetaDataAll,1)
 
         if ~isempty(tdr1subfile)
             Dive1SubStat=readtable(tdr1subfile);
-            Dive1SubStat.DateTime=datetime(Dive1SubStat.JulDate,"ConvertFrom","datenum");
+            Dive1SubStat.Time=datetime(Dive1SubStat.JulDate,"ConvertFrom","datenum");
             Dive1SubStat.Lat(:)=NaN;
             Dive1SubStat.Lon(:)=NaN;
             Dive1SubStat.Lat_se_km(:)=NaN;
@@ -404,7 +404,7 @@ for i=1:size(MetaDataAll,1)
 
         if ~isempty(tdr2file)
             Dive2Stat=readtable(tdr2file);
-            Dive2Stat.DateTime=datetime(Dive2Stat.JulDate,"ConvertFrom","datenum");
+            Dive2Stat.Time=datetime(Dive2Stat.JulDate,"ConvertFrom","datenum");
             Dive2Stat.Lat(:)=NaN;
             Dive2Stat.Lon(:)=NaN;
             Dive2Stat.Lat_se_km(:)=NaN;
@@ -415,7 +415,7 @@ for i=1:size(MetaDataAll,1)
 
         if ~isempty(tdr2subfile)
             Dive2SubStat=readtable(tdr2subfile);
-            Dive2SubStat.DateTime=datetime(Dive2SubStat.JulDate,"ConvertFrom","datenum");
+            Dive2SubStat.Time=datetime(Dive2SubStat.JulDate,"ConvertFrom","datenum");
             Dive2SubStat.Lat(:)=NaN;
             Dive2SubStat.Lon(:)=NaN;
             Dive2SubStat.Lat_se_km(:)=NaN;
@@ -426,7 +426,7 @@ for i=1:size(MetaDataAll,1)
 
         if ~isempty(tdr3file)
             Dive3Stat=readtable(tdr3file);
-            Dive3Stat.DateTime=datetime(Dive3Stat.JulDate,"ConvertFrom","datenum");
+            Dive3Stat.Time=datetime(Dive3Stat.JulDate,"ConvertFrom","datenum");
             Dive3Stat.Lat(:)=NaN;
             Dive3Stat.Lon(:)=NaN;
             Dive3Stat.Lat_se_km(:)=NaN;
@@ -437,7 +437,7 @@ for i=1:size(MetaDataAll,1)
 
         if ~isempty(tdr3subfile)
             Dive3SubStat=readtable(tdr3subfile);
-            Dive3SubStat.DateTime=datetime(Dive3SubStat.JulDate,"ConvertFrom","datenum");
+            Dive3SubStat.Time=datetime(Dive3SubStat.JulDate,"ConvertFrom","datenum");
             Dive3SubStat.Lat(:)=NaN;
             Dive3SubStat.Lon(:)=NaN;
             Dive3SubStat.Lat_se_km(:)=NaN;

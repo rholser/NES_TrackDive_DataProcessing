@@ -5,7 +5,7 @@
 % to match global attributes, and save as csv
 
 clear
-load("D:\Dropbox\MATLAB\Projects\Eseal Data Processing - NetCDF\MetaData.mat")
+load("D:\Dropbox\MATLAB\Projects\Eseal Data Processing - MatFiles\MetaData.mat")
 load("MetaData.mat")
 
 %Create empty table to populate that matches length of MetaDataAll
@@ -13,7 +13,7 @@ ToAdd=table('Size',[size(MetaDataAll,1),size(TagMetaDataAll,2)],'VariableTypes',
     'VariableNames',TagMetaDataAll.Properties.VariableNames);
 
 %Find TagMetaDataAll row that matches each TOPPID and add to new table, if no tag metadata, leave row blank
-for i=16:size(MetaDataAll)
+for i=1:size(MetaDataAll)
     try
         ToAdd(i,:)=TagMetaDataAll(TagMetaDataAll.TOPPID==MetaDataAll.TOPPID(i),:);
     end
@@ -26,7 +26,7 @@ MetaDataAll=MetaDataAll(:,ismember(MetaDataAll.Properties.VariableNames, {'Depar
 %Concatenate tables
 MetaDataAll=[ToAdd MetaDataAll];
 %Remove rows pre-2004 and unneeded columns from TagMetaData
-MetaDataAll(1:15,:)=[];
+%MetaDataAll(1:15,:)=[];
 MetaDataAll(:,27:35)=[];
 %Add column for year
 MetaDataAll.Year=year(MetaDataAll.DepartDate);

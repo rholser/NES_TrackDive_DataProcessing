@@ -28,7 +28,7 @@
 %               Added QC figures
 % 03-Jul-2023 - Changed to iknos_da_V2
 %               Added outFolder and built more flexible file read/naming
-%
+% 31-May-2023 - More outFolder updates.  Changed min depth to 25 m
 
 function subsample_DA(filename,filenameDA,fullreszocfile,TOPPID,outFolder)
     
@@ -36,11 +36,11 @@ function subsample_DA(filename,filenameDA,fullreszocfile,TOPPID,outFolder)
     %change_format_DA.m
 
     %Data to be subset
-    data=readmatrix(strcat(outFolder,'/',filename));
+    data=readmatrix(strcat(outFolder,'\',filename));
     
     %DAstring
     m=size(data,2);
-    fid=fopen(strcat(outFolder,'/',filenameDA));
+    fid=fopen(strcat(outFolder,'\',filenameDA));
     if m==7
         preDAstring=textscan(fid,'%s %s %s %s %s %s %s');
         DAstring=[preDAstring{1},preDAstring{2},preDAstring{3},preDAstring{4},...
@@ -59,9 +59,9 @@ function subsample_DA(filename,filenameDA,fullreszocfile,TOPPID,outFolder)
     end
     
     %full res data for zoc parameter determination
-    data_fullres=readtable(strcat(outFolder,'/',fullreszocfile),'HeaderLines',26,'ReadVariableNames',true);
+    data_fullres=readtable(strcat(outFolder,'\',fullreszocfile),'HeaderLines',26,'ReadVariableNames',true);
     if ~contains(data_fullres.Properties.VariableNames(:),'time')
-        data_fullres=readtable(strcat(outFolder,'/',fullreszocfile),'HeaderLines',22,'ReadVariableNames',true);
+        data_fullres=readtable(strcat(outFolder,'\',fullreszocfile),'HeaderLines',22,'ReadVariableNames',true);
     end
 
     data_fullres.Time=datetime(data_fullres.time,'ConvertFrom','datenum');
@@ -106,32 +106,32 @@ function subsample_DA(filename,filenameDA,fullreszocfile,TOPPID,outFolder)
 
         %Step 3.3: Subsample data and save file
         data=data(1:SubSample:end,:);
-        writematrix(data,strcat(extractBefore(filename,'full'), 'SubSample.csv'));
+        writematrix(data,strcat(outFolder,'\',extractBefore(filename,'full'), 'SubSample.csv'));
 
         %Step 3.4: Run IKNOS DA
         if minsurface<-10
-            iknos_da(strcat(extractBefore(filename,'full'), 'SubSample.csv'),DAstring,4,...
-                15/DepthRes,20,'wantfile_yes','ZocWindow',2,...
+            iknos_da(strcat(outFolder,'\',extractBefore(filename,'full'), 'SubSample.csv'),DAstring,4,...
+                25/DepthRes,20,'wantfile_yes','ZocWindow',2,...
                 'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,...
                 'ZocMinMax',[minsurface-10,2200]);
         else
-            iknos_da(strcat(extractBefore(filename,'full'), 'SubSample.csv'),DAstring,4,...
-                15/DepthRes,20,'wantfile_yes','ZocWindow',2,...
+            iknos_da(strcat(outFolder,'\',extractBefore(filename,'full'), 'SubSample.csv'),DAstring,4,...
+                25/DepthRes,20,'wantfile_yes','ZocWindow',2,...
                 'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,'ZocMinMax',[-10,2200]);
         end
         %Step 4: Plot and save QC figs
-        rawzocdatafile=strcat(extractBefore(filename,'full'),'SubSample_iknos_rawzoc_data.csv');
-        rawzocdata=readtable(strcat(outFolder,'/',rawzocdatafile),'HeaderLines',26,'ReadVariableNames',true);
-        if ~contains(data.Properties.VariableNames(:),'time')
-            rawzocdata=readtable(strcat(outFolder,'/',rawzocdatafile),'HeaderLines',22,'ReadVariableNames',true);
+        rawzocdatafile=strcat(outFolder,'\',extractBefore(filename,'full'),'SubSample_iknos_rawzoc_data.csv');
+        rawzocdata=readtable(rawzocdatafile,'HeaderLines',26,'ReadVariableNames',true);
+        if ~contains(rawzocdata.Properties.VariableNames(:),'time')
+            rawzocdata=readtable(rawzocdatafile,'HeaderLines',22,'ReadVariableNames',true);
         end
 
         rawzocdata.Time=datetime(rawzocdata.time,'ConvertFrom','datenum');
 
-        DiveStatfile=strcat(extractBefore(filename,'full'),'SubSample_iknos_DiveStat.csv');
-        DiveStat=readtable(strcat(outFolder,'/',DiveStatfile),'HeaderLines',26,'ReadVariableNames',true);
+        DiveStatfile=strcat(outFolder,'\',extractBefore(filename,'full'),'SubSample_iknos_DiveStat.csv');
+        DiveStat=readtable(DiveStatfile,'HeaderLines',26,'ReadVariableNames',true);
         if ~contains(DiveStat.Properties.VariableNames(:),'PDI')
-            DiveStat=readtable(strcat(outFolder,'/',DiveStatfile),'HeaderLines',22,'ReadVariableNames',true);
+            DiveStat=readtable(DiveStatfile,'HeaderLines',22,'ReadVariableNames',true);
         end
         DiveStat.Time=datetime(DiveStat.Year,DiveStat.Month,DiveStat.Day,DiveStat.Hour,DiveStat.Min,DiveStat.Sec);
 
@@ -144,7 +144,7 @@ function subsample_DA(filename,filenameDA,fullreszocfile,TOPPID,outFolder)
         text(DiveStat.Time,DiveStat.Maxdepth,num2str(DiveStat.DiveNumber),'Color','b');
         legend({'raw','zoc','Start dive','End dive'});
         title(['Raw vs ZOC: ' num2str(TOPPID)]);
-        savefig(strcat(extractBefore(filename,'full'),'SubSample_Raw_ZOC.fig'));
+        savefig(strcat(outFolder,'\',extractBefore(filename,'full'),'SubSample_Raw_ZOC.fig'));
         close;
     end
     clear minsurface SubSample SamplingInt DepthRes data DAstring data_fullres data rawzocdata DiveStat

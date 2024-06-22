@@ -54,6 +54,7 @@
 % 03-Jul-2023 - added filename change for SMRU tdr raw/clean files
 % 24-Jul-2023 - Updated script and function names, added annotation, removed matfile creationg and 
 %               added NetCDF creation scripts
+% 06-May-2024 - Fixed file selection/matching for Step 3: Subsample...
 
 %% Compile MetaData and Raw Filenames
 
@@ -73,7 +74,7 @@ prep_argos_and_gps_for_aniMotum
 % Recompile filenames to correctly compile filenames for R script
 CompileFilenames
 
-%%%%%% Open R to run "run_aniMotum_forMatfiles.R"
+%%%%%% Open R to run "run_aniMotum.R"
 
 % After aniMotum is complete, re-compile filenames
 CompileFilenames
@@ -151,7 +152,7 @@ for k=1:size(files,1)
     TOPPID=files.TOPPID(k);
     outFolder=files.folder(k);
     fileDA=strcat(extractBefore(files.filename(k),'_DAprep'),'_DAString.txt');
-    subsample_DA(files.filename(k), fileDA, filesZOC.filename(filesZOC.TOPPID==TOPPID), TOPPID,outFolder)
+    subsample_DA(files.filename(k), fileDA, filesZOC.filename(contains(filesZOC.filename,strtok(files.filename(k),'.'))), TOPPID,outFolder);
 end
 
 CompileFilenames

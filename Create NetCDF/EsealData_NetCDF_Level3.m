@@ -28,6 +28,8 @@
 %               _8S structures.
 % 06-Aug-2023 - Added global attriubute
 % 14-Aug-2023 - Modified global attributes
+% 02-Jun-2024 - Changed from using "string" to "cellstr" for converting Date from TDRs (unexplained
+%               error with 2015018 that this change resolved).
 
 clear
 load('MetaData.mat');
@@ -84,9 +86,10 @@ for i=1:size(TagMetaDataAll,1)
         '(D.Crocker, R.Holser, P.Robinson) for additional information about the study system. ' ...
         'Offers of coauthorship would be appreciated, especially given the unique natural history ' ...
         'of this organism and the considerable effort required to collect these data.']);
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper", '');
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper", ['Costa, D.P., Holser, R.R., et al. (2024), '...
+        'Two Decades of Three-Dimensional Movement Data from Adult Female Northern Elephant Seals. Scientific Data.']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Paper_DOI", '');
-    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", ['Costa, Daniel et al. (2023), ' ...
+    netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset", ['Costa, D.P., Holser, R.R., et al. (2024), ' ...
         'Northern Elephant Seal Tracking and Diving Data - Processed, Dryad, Dataset, https://doi.org/10.7291/D18D7W']);
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Citation_Dataset_DOI", '10.7291/D18D7W');
     netcdf.putAtt(ncid, netcdf.getConstant("NC_GLOBAL"),  "Data_Type", 'Tracking and diving time-series data');
@@ -166,7 +169,7 @@ for i=1:size(TagMetaDataAll,1)
     try
         data=readtable(strcat(TDRDiveStatFiles.folder(TDRDiveStatFiles.TOPPID==MetaDataAll.TOPPID(j)),...
         '\',strtok(TDRDiveStatFiles.filename(TDRDiveStatFiles.TOPPID==MetaDataAll.TOPPID(j)),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
     %Create a 1-D variable (length of divestat x 1) for each column of the
     %DiveStat file and populate each from the loaded file
@@ -254,7 +257,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(TDR1GrpID);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR1GrpID,TDR1Date,string(data.DateTime));
+        netcdf.putVar(TDR1GrpID,TDR1Date,cellstr(data.Time));
         netcdf.putVar(TDR1GrpID,TDR1Depth,data.Maxdepth);
         netcdf.putVar(TDR1GrpID,TDR1Dur,data.Dduration);
         netcdf.putVar(TDR1GrpID,TDR1DTime,data.DescTime);
@@ -288,7 +291,7 @@ for i=1:size(TagMetaDataAll,1)
     try
         data=readtable(strcat(TDR2DiveStatFiles.folder(TDR2DiveStatFiles.TOPPID==MetaDataAll.TOPPID(j)),...
             '\',strtok(TDR2DiveStatFiles.filename(TDR2DiveStatFiles.TOPPID==MetaDataAll.TOPPID(j)),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
     %Create a 1-D variable (length of divestat x 1) for each column of the
     %DiveStat file and populate each from the loaded file
@@ -376,7 +379,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(ncid);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR2GrpID,TDR2Date,string(data.DateTime));
+        netcdf.putVar(TDR2GrpID,TDR2Date,cellstr(data.Time));
         netcdf.putVar(TDR2GrpID,TDR2Depth,data.Maxdepth);
         netcdf.putVar(TDR2GrpID,TDR2Dur,data.Dduration);
         netcdf.putVar(TDR2GrpID,TDR2DTime,data.DescTime);
@@ -410,7 +413,7 @@ for i=1:size(TagMetaDataAll,1)
     try
         data=readtable(strcat(TDR3DiveStatFiles.folder(TDR3DiveStatFiles.TOPPID==TOPPID),...
             '\',strtok(TDR3DiveStatFiles.filename(TDR3DiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
     %Create a 1-D variable (length of divestat x 1) for each column of the
     %DiveStat file and populate each from the loaded file
@@ -499,7 +502,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(ncid);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR3GrpID,TDR3Date,string(data.DateTime));
+        netcdf.putVar(TDR3GrpID,TDR3Date,cellstr(data.Time));
         netcdf.putVar(TDR3GrpID,TDR3Depth,data.Maxdepth);
         netcdf.putVar(TDR3GrpID,TDR3Dur,data.Dduration);
         netcdf.putVar(TDR3GrpID,TDR3DTime,data.DescTime);
@@ -536,12 +539,12 @@ for i=1:size(TagMetaDataAll,1)
         if TagMetaDataAll.TDR1_Freq(i)==8
             data=readtable(strcat(TDRDiveStatFiles.folder(TDRDiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDRDiveStatFiles.filename(TDRDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         %otherwise, look for subsampled DiveStat
         else
             data=readtable(strcat(TDRSubDiveStatFiles.folder(TDRSubDiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDRSubDiveStatFiles.filename(TDRSubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         end
     end
 
@@ -632,7 +635,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(ncid);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR1SubGrpID,TDR1SubDate,string(data.DateTime));
+        netcdf.putVar(TDR1SubGrpID,TDR1SubDate,cellstr(data.Time));
         netcdf.putVar(TDR1SubGrpID,TDR1SubDepth,data.Maxdepth);
         netcdf.putVar(TDR1SubGrpID,TDR1SubDur,data.Dduration);
         netcdf.putVar(TDR1SubGrpID,TDR1SubDTime,data.DescTime);
@@ -669,12 +672,12 @@ for i=1:size(TagMetaDataAll,1)
         if TagMetaDataAll.TDR2_Freq(i)==8
             data=readtable(strcat(TDR2DiveStatFiles.folder(TDR2DiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDR2DiveStatFiles.filename(TDR2DiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         %otherwise, look for subsampled DiveStat
         else
             data=readtable(strcat(TDR2SubDiveStatFiles.folder(TDR2SubDiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDR2SubDiveStatFiles.filename(TDR2SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         end
     end
     %Create a 1-D variable (length of divestat x 1) for each column of the
@@ -764,7 +767,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(ncid);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR2SubGrpID,TDR2SubDate,string(data.DateTime));
+        netcdf.putVar(TDR2SubGrpID,TDR2SubDate,cellstr(data.Time));
         netcdf.putVar(TDR2SubGrpID,TDR2SubDepth,data.Maxdepth);
         netcdf.putVar(TDR2SubGrpID,TDR2SubDur,data.Dduration);
         netcdf.putVar(TDR2SubGrpID,TDR2SubDTime,data.DescTime);
@@ -801,12 +804,12 @@ for i=1:size(TagMetaDataAll,1)
         if TagMetaDataAll.TDR3_Freq(i)==8
             data=readtable(strcat(TDR3DiveStatFiles.folder(TDR3DiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDR3DiveStatFiles.filename(TDR3DiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         %otherwise, look for subsampled DiveStat
         else
             data=readtable(strcat(TDR3SubDiveStatFiles.folder(TDR3SubDiveStatFiles.TOPPID==TOPPID),...
                 '\',strtok(TDR3SubDiveStatFiles.filename(TDR3SubDiveStatFiles.TOPPID==TOPPID),'.'),'_QC.csv'));
-            data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+            data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
         end
     end
 
@@ -897,7 +900,7 @@ for i=1:size(TagMetaDataAll,1)
     netcdf.endDef(ncid);
 
     if exist('data','var')==1
-        netcdf.putVar(TDR3SubGrpID,TDR3SubDate,string(data.DateTime));
+        netcdf.putVar(TDR3SubGrpID,TDR3SubDate,cellstr(data.Time));
         netcdf.putVar(TDR3SubGrpID,TDR3SubDepth,data.Maxdepth);
         netcdf.putVar(TDR3SubGrpID,TDR3SubDur,data.Dduration);
         netcdf.putVar(TDR3SubGrpID,TDR3SubDTime,data.DescTime);
@@ -930,6 +933,7 @@ for i=1:size(TagMetaDataAll,1)
     try
         data=readtable(strcat(TrackAniMotumFiles.folder(TrackAniMotumFiles.TOPPID==TOPPID),...
         '\',TrackAniMotumFiles.filename(TrackAniMotumFiles.TOPPID==TOPPID)));
+        data.date=datetime(data.date);
     end
     
     netcdf.reDef(ncid);

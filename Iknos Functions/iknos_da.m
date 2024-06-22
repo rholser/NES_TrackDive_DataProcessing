@@ -11,7 +11,8 @@ function iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wan
 % iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wantfile,varargin)
 %       EXAMPLES:
 %       iknos_da('MyFile.csv','Day Month Year Hour Minute Second depth etemp alight blight',4,8,20,'wantfile_yes');
-%       iknos_da('MyFile.csv','Day Month Year Hour Minute Second depth etemp alight',3,6,20,'wantfile_no','BotFix',75,'ZocMinMax',[-5,200],'ZocWidthForMode',4,'NightCutOff',100,'ThermoclineGradient',0.03);
+%       iknos_da('MyFile.csv','Day Month Year Hour Minute Second depth etemp alight',3,6,20,'wantfile_no',...
+%                'BotFix',75,'ZocMinMax',[-5,200],'ZocWidthForMode',4,'NightCutOff',100,'ThermoclineGradient',0.03);
 %
 %INPUTS:
 %
@@ -21,11 +22,11 @@ function iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wan
 %           This string must give the variables names of your file in order
 %           They can be separated by any non-letter character
 %           The orthograph must match the following variables names
-%            variable names: 
-%             Year , Month, Day, Hour, Minute, Second, ampm          %% all numeric am and pm can work
-%            depth, itemp, etemp, alight, blight, speed, salinity        %% all numeric
-%            xa, xb, xc, xd, xe, xf, xg, xh, xi, xj  other numeric variables
-%            ya, yb, yc, yd, ye, yf, yg, yh, yi, yj  other string variables
+%           variable names:
+%           Year , Month, Day, Hour, Minute, Second, ampm          %% all numeric am and pm can work
+%           depth, itemp, etemp, alight, blight, speed, salinity        %% all numeric
+%           xa, xb, xc, xd, xe, xf, xg, xh, xi, xj  other numeric variables
+%           ya, yb, yc, yd, ye, yf, yg, yh, yi, yj  other string variables
 %
 %   timemultiple: to define a dive, how many data points do you want ?
 %           For example if  4, this means 3 times 'sampling interval' will be the minimum time for
@@ -35,7 +36,7 @@ function iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wan
 %   depthmultiple: to define a dive, which depth should it be ?
 %            For example, if 5 meters, and depth resolution is 0.5 m, you must enter 10
 %            (without quotes).
-% 
+%
 %   depth_zone: to calculate the intra-depth-zone index.
 %            Please read (and cite): Tremblay and Cherel 2000. Benthic and pelagic dives: a
 %            new foraging behaviour in rockhopper penguins. Marine Ecology
@@ -83,7 +84,7 @@ function iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wan
 %       'ThermoclineGradient'  ,  0.05   % This is in Degree Centigrade per meter
 %       of depth.
 %
-% Information regarding the importation of the data : 
+% Information regarding the importation of the data :
 %       Idea behind the code: being able to extract data from a time
 %       series of TDR data, even if the file contains up to extra 10 numeric or 10 text variables (unused in
 %       analysis). The output must be such as they can be easily handled after (analyse, re-write...).
@@ -114,36 +115,33 @@ function iknos_da(inputfile,dataformat,timemultiple,depthmultiple,depth_zone,wan
 %                    Input parameters are printed in output files.
 %       March 2007: Little changes in Depth interval management
 %                   Version changed to 2.1/1.1
-%       July 2021: Altered date/time variable names to avoid overlap with 
+%       July 2021: Altered date/time variable names to avoid overlap with
 %                   function names. Changed maxload from 10MB to 1GB to
 %                   account for newer hardware - most files can be
 %                   processed as a single piece rather than cut into
 %                   chunks. Version changed to 2.2/1.1
-%       December 2022 (Arina Favilla): changed iknos_resolution() to either 
+%       December 2022 (Arina Favilla): changed iknos_resolution() to either
 %                                      resolution_DepthRes() or
-%                                      resolution_SamplingRate(), 
-%                                      added zoc'd profile to _zoc.fig 
+%                                      resolution_SamplingRate(),
+%                                      added zoc'd profile to _zoc.fig
 %       17-Dec-2022 - changed name to iknos_da
 %       22-Dec-2022 - changed use of strvcat-->char, csvread-->readmatrix, isstr-->ischar,
 %                     where appropriate
 %       12-Apr-2023 - changed remaining textread-->textscan and char-->sprintf for M1/M2 Mac compatibility
 %       03-Aug-2023 - updated function names (no functionality changes, just naming convention)
+%       06-Jun-2024 - replaced strvcat with updated functions
+%       07-Jun-2024 - further modifications for printing parameters at the start of output files.
+%                     Removed old/commented out code.
 
 version='2.3/1.2';
 ProcessTime=datetime("now");
 
-% %% A little memory management before to start
-% cwd = pwd;
-% cd(tempdir);
-% pack
-% cd(cwd)
-
 %% IKNOS_DA: import data
 % filename=inputfile; %things have been written in parts and merge latter... (could be more simple)
 potential_variables=char('Year','Month','Day','Hour','Minute','Second','ampm',... % temporal recognized variables
-                            'depth','itemp','etemp','alight','blight','speed','salinity',... % data recognized variables
-                            'xa','xb','xc','xd','xe','xf','xg','xh','xi','xj',... % extra variables numeric
-                            'ya','yb','yc','yd','ye','yf','yg','yh','yi','yj'); % extra variables text
+    'depth','itemp','etemp','alight','blight','speed','salinity',... % data recognized variables
+    'xa','xb','xc','xd','xe','xf','xg','xh','xi','xj',... % extra variables numeric
+    'ya','yb','yc','yd','ye','yf','yg','yh','yi','yj'); % extra variables text
 spv=size(potential_variables,1);
 logic1=isletter(dataformat);
 logic1=logic1';
@@ -153,11 +151,11 @@ s=size(idxvar,1);
 %% IMPORT: extract variables names, check for valid var names, and create format
 %% string for use in the textscan command
 format=[];
-variables=[]; % vertical list for presence checking
-variables2=[]; % horizontal list for use in the textread command
+variables={}; % vertical list for presence checking
+variables2=''; % horizontal list for use in the textread command
 for i=1:s
     string=dataformat(1,idxvar(i,1):idxvar(i,2));
-    variables=strvcat(variables,string);
+    variables{end+1}=string;
     present=0;
     j=1;
     while present==0 && j<=spv
@@ -169,49 +167,50 @@ for i=1:s
             break
         end
     end
-        if present==0
-            error('Unrecognize variable name: %s',string);
-        else
-           
-            if ismember(string,char('Year','Month','Day','Hour','Minute','Second'),'rows')
-            format=[format,' %f'];
-                if i==1
-                variables2=string;
-                else
-                variables2=[variables2,',',string];
-                end
-            elseif ismember(string,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
-            format=[format,' %f'];
-                if i==1
-                variables2=string;
-                else
-                variables2=[variables2,',',string];
-                end
-            elseif ismember(string,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
-            format=[format,' %s']; 
-                if i==1
-                variables2=string;
-                else
-                variables2=[variables2,',',string];
-                end
-            else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
-            format=[format,' %f'];           
-                if i==1
-                variables2=string;
-                else
-                variables2=[variables2,',',string];
-                end
-            end     
-        end
-end
+    if present==0
+        error('Unrecognize variable name: %s',string);
+    else
 
-%% IMPORT: check if the minimum variables required is met 
-if ~ismember('Month',variables,'rows') ||...     
-   ~ismember('Day',variables,'rows') ||...
-   ~ismember('Hour',variables,'rows') ||...   
-   ~ismember('Minute',variables,'rows') ||...     
-   ~ismember('depth',variables,'rows')
-   error('One or more of the following variables are missing: Month Day Hour Minute depth')
+        if ismember(string,char('Year','Month','Day','Hour','Minute','Second'),'rows')
+            format=strcat(format,' %f');
+            if i==1
+                variables2=string;
+            else
+                variables2=strcat(variables2,',',string);
+            end
+        elseif ismember(string,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
+            format=strcat(format,' %f');
+            if i==1
+                variables2=string;
+            else
+                variables2=strcat(variables2,',',string);
+            end
+        elseif ismember(string,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
+            format=strcat(format,' %s');
+            if i==1
+                variables2=string;
+            else
+                variables2=strcat(variables2,',',string);
+            end
+        else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
+            format=strcat(format,' %f');
+            if i==1
+                variables2=string;
+            else
+                variables2=strcat(variables2,',',string);
+            end
+        end
+    end
+end
+variables=char(variables);
+
+%% IMPORT: check if the minimum variables required is met
+if ~ismember('Month',variables,'rows') ||...
+        ~ismember('Day',variables,'rows') ||...
+        ~ismember('Hour',variables,'rows') ||...
+        ~ismember('Minute',variables,'rows') ||...
+        ~ismember('depth',variables,'rows')
+    error('One or more of the following variables are missing: Month Day Hour Minute depth')
 end
 
 %% IMPORT: check if depth_zone, timemultiple and depthmultiple are numeric and wantfile is a character string.
@@ -236,51 +235,51 @@ end
 format1=[];
 if ismember('Second',variables,'rows')
     sec_exist=1;
-        for i=1:s
-            var=deblank(variables(i,:));
-            if ismember(var,char('Year','Month','Day','Hour','Minute'),'rows')
-            format1=[format1,' %*f'];
-            elseif ismember(var,char('Second'),'rows')
-            format1=[format1,' %f'];
-            elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
-            format1=[format1,' %*f'];
-            elseif ismember(var,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
-            format1=[format1,' %*s'];   
-            else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
-            format1=[format1,' %*f'];           
-            end   
-        end 
-    else % Minute exist necessiraly and its presence has been checked before.
-        sec_exist=0;
-        for i=1:s
-            var=deblank(variables(i,:));
-            if ismember(var,char('Year','Month','Day','Hour','Second'),'rows')
-            format1=[format1,' %*f'];
-            elseif ismember(var,char('Minute'),'rows')
-            format1=[format1,' %f'];
-            elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
-            format1=[format1,' %*f'];
-            elseif ismember(var,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
-            format1=[format1,' %*s'];   
-            else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
-            format1=[format1,' %*f'];           
-            end   
+    for i=1:s
+        var=deblank(variables(i,:));
+        if ismember(var,char('Year','Month','Day','Hour','Minute'),'rows')
+            format1=strcat(format1,' %*f');
+        elseif ismember(var,char('Second'),'rows')
+            format1=strcat(format1,' %f');
+        elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
+            format1=strcat(format1,' %*f');
+        elseif ismember(var,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
+            format1=strcat(format1,' %*s');
+        else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
+            format1=strcat(format1,' %*f');
         end
+    end
+else % Minute exist necessiraly and its presence has been checked before.
+    sec_exist=0;
+    for i=1:s
+        var=deblank(variables(i,:));
+        if ismember(var,char('Year','Month','Day','Hour','Second'),'rows')
+            format1=strcat(format1,' %*f');
+        elseif ismember(var,char('Minute'),'rows')
+            format1=strcat(format1,' %f');
+        elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows')
+            format1=strcat(format1,' %*f');
+        elseif ismember(var,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj','ampm'),'rows')
+            format1=strcat(format1,' %*s');
+        else % that is the non temporal recognized variables (e.g. depth etemp alight speed...)
+            format1=strcat(format1,' %*f');
+        end
+    end
 end
 
 if ~ismember('Year',variables,'rows') % variable Year is absent from file
     chk=0;
     while chk==0 % input Year for first data
-            yr=input('Please enter starting Year of data (between 1970 and 2070) with 4 digits:');
-            if isempty(yr)
-                chk=0;
-            elseif isnumeric(yr)==0
-                chk=0;
-            elseif yr<1970 || yr>2070
-                chk=0;
-            else
-                chk=1;
-            end
+        yr=input('Please enter starting Year of data (between 1970 and 2070) with 4 digits:');
+        if isempty(yr)
+            chk=0;
+        elseif isnumeric(yr)==0
+            chk=0;
+        elseif yr<1970 || yr>2070
+            chk=0;
+        else
+            chk=1;
+        end
     end
 else
     yr=[];
@@ -293,31 +292,38 @@ BotString='';
 ZocString='';
 NightDayLightCutoff=[];
 ThermoclineGradient=[];
-ParamLineZoc='';
-ParamLineBot='';
+ParamLineZoc={};
+ParamLineBot={};
 for i=1:2:size(varargin,2)-1
-    if ischar(varargin{i}) && strcmp(varargin{i}(1:3),'Zoc') %RRH add
-    %if  isstr(varargin{i}) & varargin{i}(1:3)=='Zoc'
-            ZocString=[ZocString,',''',varargin{i},''''];
-            if max(size(varargin{i+1}))==1 % this is because one Zoc input can be a vector of 2 values (see zoc)
-            ZocString=[ZocString,',',num2str(varargin{i+1})];
-            ParamLineZoc=strvcat(ParamLineZoc,['%   ', varargin{i} , ' = ' num2str(varargin{i+1}) ]); 
-            else
-            ZocString=[ZocString,',[',num2str(varargin{i+1}),']'];
-            ParamLineZoc=strvcat(ParamLineZoc,['%   ', varargin{i} , ' = [' num2str(varargin{i+1}) ,']' ]); 
-            end
+    if ischar(varargin{i}) && strcmp(varargin{i}(1:3),'Zoc')
+        ZocString=strcat(ZocString,',''',varargin{i},'''');
+        if max(size(varargin{i+1}))==1 % this is because one Zoc input can be a vector of 2 values (see zoc)
+            ZocString=strcat(ZocString,',',num2str(varargin{i+1}));
+            ParamLineZoc{end+1} = strjoin({'%   ', varargin{i}, ' = ', num2str(varargin{i+1})}, ''); % add string to cell array
+        else
+            ZocString=strcat(ZocString,',[',num2str(varargin{i+1}),']');
+            ParamLineZoc{end+1} = strjoin({'%   ', varargin{i}, ' = ', num2str(varargin{i+1})}, ''); % add string to cell array
+        end
     elseif ischar(varargin{i}) && strcmp(varargin{i}(1:3),'Bot')
-    %elseif isstr(varargin{i}) & varargin{i}(1:3)=='Bot'
-             BotString=[BotString,',''',varargin{i},''''];
-             BotString=[BotString,',',num2str(varargin{i+1})];
-             ParamLineBot=strvcat(ParamLineBot,['%   ', varargin{i} , ' = ', num2str(varargin{i+1})]);
-    elseif ischar(varargin{i}) && strcmp(varargin{i},'NightCutOff')  %RRH Add
-%    elseif isstr(varargin{i}) & strcmp(varargin{i},'NightCutOff')
+        BotString=strcat(BotString,',''',varargin{i},'''');
+        BotString=strcat(BotString,',',num2str(varargin{i+1}));
+        ParamLineBot{end+1, 1} = strjoin({'%   ', varargin{i}, ' = ', num2str(varargin{i+1})}, '');
+    elseif ischar(varargin{i}) && strcmp(varargin{i},'NightCutOff')
         NightDayLightCutoff=num2str(varargin{i+1});
-    elseif ischar(varargin{i}) && strcmp(varargin{i},'ThermoclineGradient') %RRH Add
-%    elseif isstr(varargin{i}) & strcmp(varargin{i},'ThermoclineGradient')
+    elseif ischar(varargin{i}) && strcmp(varargin{i},'ThermoclineGradient')
         ThermoclineGradient=varargin{i+1};
     end
+end
+% Convert ParamLineZoc and ParamLineBot into string arrays
+if ~isempty(ParamLineZoc)
+    ParamLineZoc = strjoin(ParamLineZoc, newline);
+else
+    ParamLineZoc = '';
+end
+if ~isempty(ParamLineBot)
+    ParamLineBot = strjoin(ParamLineBot, newline);
+else
+    ParamLineBot = '';
 end
 
 if isempty(BotString)
@@ -327,42 +333,12 @@ end
 if isempty(NightDayLightCutoff)
     NightDayLightCutoff=150;
 end
-
 if isempty(ThermoclineGradient)
     ThermoclineGradient=0.05;
 end
 
 %% Build command line strings
-% command1_1=['[timecol]','=textread(''',inputfile,''',''',format1,''',',...
-%         '''delimiter''',',','''\t , ; / :''',',','''emptyvalue''',',','NaN);']; 
-% command2_1=['[timecol]','=textread(''',inputfile,''',''',format1,''',',...
-%         '''delimiter''',',','''\t , ; / :''',',','''emptyvalue''',',','NaN,''','headerlines''',',','1);'];
-% command3_1=['[timecol]','=textread(''',inputfile,''',''',format1,''',',...
-%         '''delimiter''',',','''\t , ; / :''',',','''emptyvalue''',',','NaN,''','headerlines''',',','2);'];
-% 
-% if exist(inputfile)==2
-%     try
-%         eval(command1_1);
-%         headline=0;
-%     catch
-%         try
-%             eval(command2_1);
-%             headline=1;
-%         catch
-%             try
-%                 eval(command3_1);
-%                 headline=2;
-%             catch
-%                 error('Error importing the time column: check for 1) character strings in data field 2) number headerlines (max 2) 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)')
-%             end
-%         end
-%     end
-% 
-% else
-%     error('File not found');
-% end
-
-%Conversion to use textscan instead of textread
+%Converted to use textscan instead of textread
 fid = fopen(inputfile, 'r');
 if fid == -1
     error('File not found');
@@ -382,26 +358,26 @@ catch
             timecol = textscan(fid, format1, 'delimiter', ',\t ;/:', 'emptyvalue', NaN, 'HeaderLines', 2);
             headline = 2;
         catch
-            error('Error importing the time column: check for 1) character strings in data field 2) number headerlines (max 2) 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)');
+            error(['Error importing the time column: check for 1) character strings in data field 2) number headerlines (max 2)' ...
+                ' 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)']);
         end
     end
 end
 
 fclose(fid);
 timecol = timecol{1};
-
 n_lines=length(timecol);
 
-    if sec_exist==1
-        sampling_interval=resolution_SamplingRate(timecol);
-    else
-        sampling_interval=resolution_SamplingRate(timecol).*60;
-    end
-    
-    if sampling_interval==0
-        error('Time Vector is invalid, sampling interval was found equal to zero.');
-    end
-    
+if sec_exist==1
+    sampling_interval=resolution_SamplingRate(timecol);
+else
+    sampling_interval=resolution_SamplingRate(timecol).*60;
+end
+
+if sampling_interval==0
+    error('Time Vector is invalid, sampling interval was found equal to zero.');
+end
+
 clear timecol
 h=dir(inputfile);
 file_size=h.bytes; clear h
@@ -409,15 +385,10 @@ file_size=h.bytes; clear h
 %% if file is larger than "maxload", it will be chunked.
 %% maxload is half if raw data file output is wanted
 %% otherwise there is memory issues
-    maxload=1000000000; %% this is 10 Megs  (Changed to 1GB )
-%     if strcmp(wantfile,'wantfile_yes')
-%     maxload=maxload/2; %% Only 5 megs if the output raw data file is desired
-%     end
-      
-    n_chunk=ceil(file_size/maxload); % how many times 10 Megs.
-
-    chunk_idx=round((0:n_lines/n_chunk:n_lines)');
-    overlap=round((2*60*60)/sampling_interval); % minimum number of lines in the file that covers 2 Hours.
+maxload=1000000000; %% this is 10 Megs  (Changed to 1GB )
+n_chunk=ceil(file_size/maxload); % how many times 1 GB.
+chunk_idx=round((0:n_lines/n_chunk:n_lines)');
+overlap=round((2*60*60)/sampling_interval); % minimum number of lines in the file that covers 2 Hours.
 
 %% calculate the number of lines to skip (headerline)
 %% and the number of lines to import (N)
@@ -437,45 +408,39 @@ else
 end
 
 %% Final file names
-    % id=find(inputfile=='.');
-    % if isempty(id)==0
-    %     file=inputfile(1,1:id-1);
-    % else
-    %     file=inputfile ;
-    % end
-    
-    finaloutputstatfile=strcat(strtok(inputfile,'.'), '_iknos_DiveStat.csv');
-    finaloutputrawfile=strcat(strtok(inputfile,'.'), '_iknos_rawzoc_data.csv'); 
-    finaloutputfig1file=strcat(strtok(inputfile,'.'),'_iknos_fig_zoc.fig');
-    finaloutputfig2file=strcat(strtok(inputfile,'.'),'_iknos_fig_da.fig'); 
+finaloutputstatfile=strcat(strtok(inputfile,'.'), '_iknos_DiveStat.csv');
+finaloutputrawfile=strcat(strtok(inputfile,'.'), '_iknos_rawzoc_data.csv');
+finaloutputfig1file=strcat(strtok(inputfile,'.'),'_iknos_fig_zoc.fig');
+finaloutputfig2file=strcat(strtok(inputfile,'.'),'_iknos_fig_da.fig');
 
 %% Strings used later to write the output stat files in the main function
-    header_results='Year,Month,Day,Hour,Min,Sec,JulDate,Maxdepth,Dduration,Botttime,DescTime,DescRate,AscTime,AscRate,PDI,DWigglesDesc,DWigglesBott,DWigglesAsc,TotVertDistBot,BottRange,Efficiency,IDZ';
-    format_results='  %4.0f,%2.0f,%2.0f,%2.0f,%2.0f,%2.0f, %f,   %4.1f,   %4.0f,    %4.0f,    %4.0f,     %2.3f,  %4.0f, %2.3f, %5.0f,%3.0f,   %3.0f,         %3.0f,         %3.1f,    %3.1f,    %1.3f,  %1.0f';
-    result_string='[timevect;result1';  %divnumb'';
-    if ismember('alight',variables,'rows')
-        header_results=[header_results,',','LightAtBott,LWiggles,LightAtSurf,Lattenuation,EuphoticDepth'];
-        format_results=[format_results,',','  %4.3f, %3.0f, %4.1f , %3.3f , %3.1f'];
-        result_string=[result_string,';','result2']; 
-    end
-    if ismember('itemp',variables,'rows') || ismember('etemp',variables,'rows')
-        header_results=[header_results,',','TempAtSurf,TempAtBott'];
-        format_results=[format_results,',','%3.3f  , %3.3f'];  
-        result_string=[result_string,';','result3']; 
-    end
-    if ismember('etemp',variables,'rows')
-        header_results=[header_results,',','ThermoclineDepth'];
-        format_results=[format_results,',',' %4.2f'];  
-%         result_string=[result_string,';','result3']; 
-    end
-    if ismember('speed',variables,'rows') 
-        header_results=[header_results,',','SwimSpeedDesc,SwimSpeedBott,SwimSpeedAsc,MaxSwimSpeed,TotAccelBott,DescAngle,AscAngle'];
-        format_results=[format_results,',',' %2.3f,       %2.3f,        %2.3f,       %2.3f,         %3.0f,       %3.1f,   %3.1f'];
-        result_string=[result_string,';','result4'];  
-    end
-result_string=[result_string,']'];   
-str3=['fprintf(fid,','''',header_results,'\n'');']; 
-str4=['fprintf(fid,','''',format_results,'\n'',',result_string,');'];
+header_results=['Year,Month,Day,Hour,Min,Sec,JulDate,Maxdepth,Dduration,Botttime,DescTime,DescRate,AscTime,' ...
+    'AscRate,PDI,DWigglesDesc,DWigglesBott,DWigglesAsc,TotVertDistBot,BottRange,Efficiency,IDZ'];
+format_results=['%4.0f, %2.0f, %2.0f, %2.0f, %2.0f, %2.0f, %f, %4.1f, %4.0f, %4.0f, %4.0f, %2.3f,' ...
+    ' %4.0f, %2.3f, %5.0f, %3.0f, %3.0f, %3.0f, %3.1f, %3.1f, %1.3f, %1.0f'];
+result_string='[timevect;result1';  %divnumb'';
+if ismember('alight',variables,'rows')
+    header_results=strcat(header_results,',','LightAtBott,LWiggles,LightAtSurf,Lattenuation,EuphoticDepth');
+    format_results=strcat(format_results,',','  %4.3f, %3.0f, %4.1f, %3.3f, %3.1f');
+    result_string=strcat(result_string,';','result2');
+end
+if ismember('itemp',variables,'rows') || ismember('etemp',variables,'rows')
+    header_results=strcat(header_results,',','TempAtSurf,TempAtBott');
+    format_results=strcat(format_results,',','%3.3f, %3.3f');
+    result_string=strcat(result_string,';','result3');
+end
+if ismember('etemp',variables,'rows')
+    header_results=strcat(header_results,',','ThermoclineDepth');
+    format_results=strcat(format_results,',',' %4.2f');
+end
+if ismember('speed',variables,'rows')
+    header_results=strcat(header_results,',','SwimSpeedDesc,SwimSpeedBott,SwimSpeedAsc,MaxSwimSpeed,TotAccelBott,DescAngle,AscAngle');
+    format_results=strcat(format_results,',',' %2.3f, %2.3f, %2.3f, %2.3f, %3.0f, %3.1f, %3.1f');
+    result_string=strcat(result_string,';','result4');
+end
+result_string=strcat(result_string,']');
+str3=strcat('fprintf(fid,','''',header_results,'\n'');');
+str4=strcat('fprintf(fid,','''',format_results,'\n'',',result_string,');');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% MAIN LOOP OF PROGRAM
@@ -484,17 +449,19 @@ str4=['fprintf(fid,','''',format_results,'\n'',',result_string,');'];
 if size(headerline,1)==1  %% this means: file processed in one chunk.
     cut=0;
     block_number=[];
-i=1;
+    i=1;
 
-[fig1,fig2,yr,intervaldepth,intervaltime,ParamLineZoc]=yt_import_and_analyse(yr,N(i,1),headerline(i,1),cut,block_number,overlap,inputfile,...
-    finaloutputstatfile,finaloutputrawfile,variables,variables2,format,timemultiple,depthmultiple,depth_zone,wantfile,str3,str4,...
-    ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime); %       N(i,1),headerline(i,1),cut,block_number,chunk_idx,inputfile,outputstatfile,outputrawfile,variables,variables2,format,timemultiple,depthmultiple,method_bt,depth_zone,wantfile,str3,str4
+    [fig1,fig2,yr,intervaldepth,intervaltime,ParamLineZoc]=yt_import_and_analyse(yr,N(i,1),headerline(i,1),cut,block_number,overlap,inputfile,...
+        finaloutputstatfile,finaloutputrawfile,variables,variables2,format,timemultiple,depthmultiple,depth_zone,wantfile,str3,str4,...
+        ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime);
+    %N(i,1),headerline(i,1),cut,block_number,chunk_idx,inputfile,outputstatfile,outputrawfile,variables,variables2,
+    % format,timemultiple,depthmultiple,method_bt,depth_zone,wantfile,str3,str4
 
-%% Build parameter lines to be added to output files
-param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
-    ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
+    %% Build parameter lines to be added to output files
+    param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
+        ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
 
-%% Save the output figures so that they will be visible when opened   
+    %% Save the output figures so that they will be visible when opened
     set(fig1,'visible','on');
     saveas(fig1,finaloutputfig1file);
     set(fig1,'visible','off');
@@ -502,75 +469,53 @@ param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,
     saveas(fig2,finaloutputfig2file);
     set(fig2,'visible','off');
     close all
-%% open stat file and add the dive number column
-    M=readmatrix(finaloutputstatfile,'Range',[2,1]); %RRH Add
-    %M=csvread(finaloutputstatfile,1,0);
-    fileID=fopen(finaloutputstatfile); %RRH Add
-    header=textscan(fileID,'%s',1,'delimiter','\n'); %RRH Add
-    fclose(fileID); %RRH Add
-    %[header]=textread(finaloutputstatfile,'%s',1,'delimiter','\n');
+    %% open stat file and add the dive number column
+    M=readmatrix(finaloutputstatfile,'Range',[2,1]); 
+    fileID=fopen(finaloutputstatfile); 
+    header=textscan(fileID,'%s',1,'delimiter','\n'); 
+    fclose(fileID); 
     M=[(1:size(M,1))',M];
-%% add dive numbers on the figure with analyzed dives
+    %% add dive numbers on the figure with analyzed dives
     fig2=open(finaloutputfig2file);
     set(fig2,'visible','off');
-    text(M(:,8),-M(:,9),num2str(M(:,1))); %zeros(size(M,1),1)
+    text(M(:,8),-M(:,9),num2str(M(:,1))); 
     set(fig2,'visible','on');
     saveas(fig2,finaloutputfig2file);
     set(fig2,'visible','off');
     close all
-%% save Stat file in its final form
+    %% save Stat file in its final form
     header_results=['DiveNumber,',header_results,'\n'];
     format_results=[ '%6u,' ,format_results,'\n'];
-    M=flipud(rot90(M)); 
+    M=flipud(rot90(M));
     fid = fopen(finaloutputstatfile,'w');
     fprintf(fid,'%s\n',param{:});
     fprintf(fid,header_results);
     fprintf(fid,format_results,M);
     fclose(fid);
     clear M
-    
-% %% save Raw file in its final form
-% 
-% if strcmp(wantfile,'wantfile_yes')
-% Head=textread(finaloutputrawfile,'%s',1);
-% M=csvread(finaloutputrawfile,1,0);
-% form='%4.3f,%7.7f';
-% for qw=1:size(M,2)-2
-%     form=[form,',%4.3f'];
-% end
-% M=flipud(rot90(M)); 
-% form
-% Head
-%     fid = fopen(finaloutputrawfile,'w');
-%     fprintf(fid,'%s\n',param{:});
-%     fprintf(fid,'%s',Head{:});
-%     fprintf(fid,form,M);
-%     fclose(fid); 
-% 
-% end
 
 else  %%% This is if the file is processed in several chunks
-    
-%%
     cut=1;
     statfilelist=[];
     rawfilelist=[];
     for i=1:size(headerline,1)
-    outputstatfile=strcat('ImprobableTemporaryFileNameToDelete_',num2str(i),'.csv');
-    statfilelist=char(statfilelist,outputstatfile);
-    outputrawfile=strcat('ImprobTempRawFileNameToDelete_',num2str(i),'.csv');
-    rawfilelist=char(rawfilelist,outputrawfile);
+        outputstatfile=strcat('ImprobableTemporaryFileNameToDelete_',num2str(i),'.csv');
+        statfilelist=char(statfilelist,outputstatfile);
+        outputrawfile=strcat('ImprobTempRawFileNameToDelete_',num2str(i),'.csv');
+        rawfilelist=char(rawfilelist,outputrawfile);
         if i~=size(headerline,1)
-        block_number=i;
+            block_number=i;
         else
-        block_number=999999;
+            block_number=999999;
         end
-    [fig1,fig2,yr,intervaldepth,intervaltime,ParamLineZoc]=yt_import_and_analyse(yr,N(i,1),headerline(i,1),cut,block_number,overlap,inputfile,...
-        outputstatfile,outputrawfile,variables,variables2,format,timemultiple,depthmultiple,depth_zone,wantfile,str3,str4,...
-        ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime); %       N(i,1),headerline(i,1),cut,block_number,chunk_idx,inputfile,outputstatfile,outputrawfile,variables,variables2,format,timemultiple,depthmultiple,method_bt,depth_zone,wantfile,str3,str4
+        [fig1,fig2,yr,intervaldepth,intervaltime,ParamLineZoc]=yt_import_and_analyse(yr,N(i,1),headerline(i,1),cut,block_number,overlap,inputfile,...
+            outputstatfile,outputrawfile,variables,variables2,format,timemultiple,depthmultiple,depth_zone,wantfile,str3,str4,...
+            ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime);
+        %N(i,1),headerline(i,1),cut,block_number,chunk_idx,inputfile,outputstatfile,outputrawfile,variables,variables2,format,
+        % timemultiple,depthmultiple,method_bt,depth_zone,wantfile,str3,str4
     end
-    
-%% Save the output figures so that they will be visible when opened 
+
+    %% Save the output figures so that they will be visible when opened
     set(fig1,'visible','on');
     saveas(fig1,finaloutputfig1file);
     set(fig1,'visible','off');
@@ -579,88 +524,76 @@ else  %%% This is if the file is processed in several chunks
     set(fig2,'visible','off');
     close all
 
-%% Put the temporary stat files together
+    %% Put the temporary stat files together
     M=[];
     for i=1:size(headerline,1)
         fil=deblank(statfilelist(i,:));
-        N=readmatrix(fil,'Range',[2,1]); %RRH Add
-        %N=csvread(fil,1,0);
+        N=readmatrix(fil,'Range',[2,1]);
         M=[M;N]; clear N
         if i==1 % not necessary to do this each time.
-            fileID=fopen(fil); %RRH Add
-            header=textscan(fileID,'%s',1,'delimiter','\n'); %RRH add
-            fclose(fileID); %RRH add
-           %[header]=textread(fil,'%s',1,'delimiter','\n');
-        end    
+            fileID=fopen(fil);
+            header=textscan(fileID,'%s',1,'delimiter','\n');
+            fclose(fileID);
+        end
     end
     M=[(1:size(M,1))',M];
-    
-%% add dive numbers on the figure with analyzed dives
+
+    %% add dive numbers on the figure with analyzed dives
     fig2=open(finaloutputfig2file);
     set(fig2,'visible','off');
-    text(M(:,8),-M(:,9),num2str(M(:,1))); %zeros(size(M,1),1)
+    text(M(:,8),-M(:,9),num2str(M(:,1))); 
     set(fig2,'visible','on');
     saveas(fig2,finaloutputfig2file);
     set(fig2,'visible','off');
     close all
-    
-%% Build parameter lines to be added to output files
-param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
-    ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
 
-%% save statfile in its final form
+    %% Build parameter lines to be added to output files
+    param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
+        ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
+
+    %% save statfile in its final form
     header_results=['DiveNumber,',header_results,'\n'];
     format_results=[ '%6u,' ,format_results,'\n'];
-    M=flipud(rot90(M)); 
+    M=flipud(rot90(M));
     fid = fopen(finaloutputstatfile,'w');
     fprintf(fid,'%s\n',param{:});
     fprintf(fid,header_results);
     fprintf(fid,format_results,M);
     fclose(fid);
-clear M N
-
-%% Put the temporary raw files together
-if strcmp(wantfile,'wantfile_yes')
-%     %% A little memory management
-%     cwd = pwd;
-%     cd(tempdir);
-%     pack;
-%     cd(cwd);
-    
-    M=[];
-    for i=1:size(headerline,1)
-        fil=deblank(rawfilelist(i,:));
-        N=readmatrix(fil,'Range',[2,1]); %RRH Add
-        %N=csvread(fil,1,0);
-        M=[M;N]; clear N
-        if i==1 % not necessary to do this each time.
-            fileID=fopen(fil); %RRH Add
-            header=textscan(fileID,'%s',1,'delimiter','\n'); %RRH Add
-            fclose(fileID); %RRH Add
-            header=char(header); %RRH add
-            %[header]=textread(fil,'%s',1,'delimiter','\n');
-            %header=strvcat(header);
-        end    
-    end
-        format='%4.3f,%7.6f';
-    for i=1:size(M,2)-2
-        format=[format,',%4.3f'];
-    end
-        format=[format,'\n'];
-        
-    header_results=[header,'\n'];
-    M=flipud(rot90(M)); 
-    fid = fopen(finaloutputrawfile,'w');
-    fprintf(fid,'%s\n',param{:});
-    fprintf(fid,header_results);
-    fprintf(fid,format,M);
-    fclose(fid);
-   
     clear M N
-end
 
-delete ImprobableTemporaryFileNameToDelete_*.*
-delete ImprobTempRawFileNameToDelete_*.*      
+    %% Put the temporary raw files together
+    if strcmp(wantfile,'wantfile_yes')
+        M=[];
+        for i=1:size(headerline,1)
+            fil=deblank(rawfilelist(i,:));
+            N=readmatrix(fil,'Range',[2,1]); 
+            M=[M;N]; 
+            clear N
+            if i==1 % not necessary to do this each time.
+                fileID=fopen(fil); 
+                header=textscan(fileID,'%s',1,'delimiter','\n');
+                fclose(fileID); 
+                header=char(header); 
+            end
+        end
+        format='%4.3f,%7.6f';
+        for i=1:size(M,2)-2
+            format=[format,',%4.3f'];
+        end
+        format=[format,'\n'];
+        header_results=[header,'\n'];
+        M=flipud(rot90(M));
+        fid = fopen(finaloutputrawfile,'w');
+        fprintf(fid,'%s\n',param{:});
+        fprintf(fid,header_results);
+        fprintf(fid,format,M);
+        fclose(fid);
+        clear M N
+    end
+
+    delete ImprobableTemporaryFileNameToDelete_*.*
+    delete ImprobTempRawFileNameToDelete_*.*
 end
 
 %%% END OF MAIN LOOP %%%%%%%%%%%%%%%%%%%%
@@ -669,15 +602,15 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function IKNOS_DA(inputfile,variables2,format,timemultiple,depthmultiple,method_bt,depth_zone,wantfile)
 
 %% CORE FUNCTION OF PROGRAM
 function [fig1,fig2,yr,intervaldepth,intervaltime,ParamLineZoc]=yt_import_and_analyse(yr,a,b,cut,block_number,overlap,inputfile,...
     outputstatfile,outputrawfile,variables,variables2,format,timemultiple,depthmultiple,depth_zone,wantfile,str3,str4,...
-    ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime) 
+    ZocString,BotString,NightDayLightCutoff,ThermoclineGradient,dataformat,ParamLineBot,ParamLineZoc,version,ProcessTime)
 
-%% Import: alternate to using textread (commented out below)
+%% Import
 variables2=split(variables2,',');
 fid = fopen(inputfile, 'r');
 if fid == -1
@@ -687,7 +620,8 @@ end
 try
     output = textscan(fid, format, 'delimiter', ',\t ;/:', 'emptyvalue', NaN, 'HeaderLines', b);
 catch
-    error('Error importing the file in yt_import_and_analyse: check for 1) character strings in data field 2) number headerlines (max 2) 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)')
+    error(['Error importing the file in yt_import_and_analyse: check for 1) character strings in data field ' ...
+        '2) number headerlines (max 2) 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)'])
 end
 fclose(fid);
 
@@ -695,79 +629,69 @@ fclose(fid);
 for i = 1:length(variables2)
     eval([variables2{i}, ' = output{i};']);
 end
-
 clear output
- % command1=['[',variables2,']','=textread(''',inputfile,''',''',format,''',',num2str(a),',',...
- %         '''delimiter''',',','''\t , ; / :''',',','''emptyvalue''',',','NaN',',','''headerlines''',',',num2str(b),');'];
-
-% IMPORT: evaluate import command line
-    % try 
-    %     eval(command1);
-    % catch
-    %     error('Error importing the file in yt_import_and_analyse: check for 1) character strings in data field 2) number headerlines (max 2) 3) variable names in the good order 4) delimiter(s) must be: ''tab , ; / :'' (no space)')
-    % end
 
 %%IMPORT: check validity of data for Month Day Hour Minute and Second
-    if max(Month)>12
-        error('Invalid data in variable ''Month''');
-    end
-    if max(Day)>31
-        error('Invalid data in variable ''Day''');
-    end
-    if max(Hour)>23
-        error('Invalid data in variable ''Hour''');
-    end
-    if max(Minute)>59
-        error('Invalid data in variable ''Minute''');
-    end
-    if ismember('Second',variables,'rows') && max(Second)>59
-        error('Invalid data in variable ''Second''');
-    end
+if max(Month)>12
+    error('Invalid data in variable ''Month''');
+end
+if max(Day)>31
+    error('Invalid data in variable ''Day''');
+end
+if max(Hour)>23
+    error('Invalid data in variable ''Hour''');
+end
+if max(Minute)>59
+    error('Invalid data in variable ''Minute''');
+end
+if ismember('Second',variables,'rows') && max(Second)>59
+    error('Invalid data in variable ''Second''');
+end
 
 %% IMPORT: creates Seconds vector if not present in file
-    if ~ismember('Second',variables,'rows')
-        Second=zeros(size(Minute,1),1);
-    end
+if ~ismember('Second',variables,'rows')
+    Second=zeros(size(Minute,1),1);
+end
 
 %% IMPORT: check Year presence, input Year if absent, format and change
 % from 2 digits to 4 digits, calculate time vector
 % Note: valid Years between 1970 and 2070 only (can be changed, but
 % this partly prevents from funky values)
 if ~isempty(yr) % that is if variable Year is absent from file
-    
-   Year=ones(size(Minute,1),1).*yr; 
-   time=datenum(Year,Month,Day,Hour,Minute,Second); 
-   sig=sign(diff(time));
-   idx=find(sig==-1); % Not empty if transition between Year exist in file
-   while ~isempty(idx) % change Year if a transition between Year exist in file
+
+    Year=ones(size(Minute,1),1).*yr;
+    time=datenum(Year,Month,Day,Hour,Minute,Second);
+    sig=sign(diff(time));
+    idx=find(sig==-1); % Not empty if transition between Year exist in file
+    while ~isempty(idx) % change Year if a transition between Year exist in file
         yr=yr+1;
         chk=idx(1,1);
         Year(chk+1:size(Minute,1),1)=yr;
-        time=datenum(Year,Month,Day,Hour,Minute,Second); 
+        time=datenum(Year,Month,Day,Hour,Minute,Second);
         sig=sign(diff(time));
         idx=find(sig==-1);
-    end   
-    
+    end
+
     endtimevector=datevec(time(end));
     yr=endtimevector(1,1);
-    
+
 else % variable Year is present in file
     %% If necessary transform from 2 digits to 4 digits value
     % Valid Years are only between 1971 to 2070
     Year(Year<=70)=Year(Year<=70)+2000;
     Year(Year>70 & Year<100)=Year(Year>70 & Year<100)+1900;
     if ~isempty(Year(Year<=1970)) || ~isempty(Year(Year>2070))
-    error('Invalid data in variable ''Year'''); % No electronic TDR record before 1970 !?   
+        error('Invalid data in variable ''Year'''); % No electronic TDR record before 1970 !?
     end
     time=datenum(Year,Month,Day,Hour,Minute,Second);
     yr=[];
 end
-clear Year Month Day Hour Minute Second 
+clear Year Month Day Hour Minute Second
 
 %% In case inputa have this Fuc%$#@ AMPM format ! modify it
-    if ismember(variables,'ampm','rows')
+if ismember(variables,'ampm','rows')
     time(ismember(lower(ampm),'pm','rows'),1)=time(ismember(lower(ampm),'pm',rows),1)+0.5;
-    end
+end
 clear ampm
 
 
@@ -777,116 +701,117 @@ clear ampm
 
 if cut==1 && block_number==1
     from_time=time(1,1);
-%     disp(datestr(from_time,0)); % can be used to debug
+    %     disp(datestr(from_time,0)); % can be used to debug
     if isnan(from_time) % this would be bad luck !
         qw=1+1;         % go down for upper limit
         from_time=time(qw,1);
         while isnan(from_time)
             qw=qw+1;
             from_time=time(qw,1);
-        end     
+        end
     end
     to_time=time( size(time,1)-overlap ,1);
-%         disp(datestr(to_time,0));  % can be used to debug
-        if isnan(to_time)  % this would be bad luck !
+    %         disp(datestr(to_time,0));  % can be used to debug
+    if isnan(to_time)  % this would be bad luck !
         qw=size(time,1)-overlap-1; % go up for lower limit
         to_time=time(qw,1);
         while isnan(to_time)
             qw=qw-1;
-           to_time=time(qw,1);
+            to_time=time(qw,1);
         end
-        end
+    end
 elseif cut==1 && block_number==999999 % 999999 is a code for "last block"
     from_time=time(overlap+1,1);  % chunk_idx(size(chunk_idx,1)-1
-%         disp(datestr(from_time,0));  % can be used to debug
-        if isnan(from_time)    % this would be bad luck !
+    %         disp(datestr(from_time,0));  % can be used to debug
+    if isnan(from_time)    % this would be bad luck !
         qw=1+overlap+1;
         from_time=time(qw,1);
         while isnan(from_time)
             qw=qw+1;
             from_time=time(qw,1);
-        end 
         end
+    end
     to_time=time(size(time,1),1);
-%             disp(datestr(to_time,0));  % can be used to debug
-        if isnan(to_time)  % this would be bad luck !
+    %             disp(datestr(to_time,0));  % can be used to debug
+    if isnan(to_time)  % this would be bad luck !
         qw=size(time,1)-overlap-1;
         to_time=time(qw,1);
         while isnan(to_time)
             qw=qw-1;
-           to_time=time(qw,1);
+            to_time=time(qw,1);
         end
-        end
+    end
 elseif cut==1 && block_number>1 && block_number<999999 % that means intermediate blocks
     from_time=time(overlap+1,1);
-%         disp(datestr(from_time,0)); % can be used to debug
-        if isnan(from_time) % this would be bad luck !
+    %         disp(datestr(from_time,0)); % can be used to debug
+    if isnan(from_time) % this would be bad luck !
         qw=1+overlap*2+1;
         from_time=time(qw,1);
         while isnan(from_time)
             qw=qw+1;
             from_time=time(qw,1);
-        end 
         end
+    end
     to_time=time(size(time,1)-overlap,1);
-%             disp(datestr(to_time,0));  % can be used to debug
-        if isnan(to_time)  % this would be bad luck !
+    %             disp(datestr(to_time,0));  % can be used to debug
+    if isnan(to_time)  % this would be bad luck !
         qw=size(time,1)-overlap-1;
         to_time=time(qw,1);
         while isnan(to_time)
             qw=qw-1;
-           to_time=time(qw,1);
+            to_time=time(qw,1);
         end
-        end
+    end
 end
-   
+
 %% IMPORT: create matrix with recognized variables + julian time;
 %  adjust variables1, variables2 and colnumber accordingly
 %     matrix1=datevec(time);
-    var_mat1='Year,Month,Day,Hour,Minute,Second';
-    matrix2=[time,depth];
-    clear time depth 
-    var_mat2='time,depth';
-    coltime=1;
-    coldepth=2;
-    matrix3=[];
-    var_mat3='';
-    var_txt='';
-    inc=1;
-    s=size(variables,1);
-    
+var_mat1='Year,Month,Day,Hour,Minute,Second';
+matrix2=[time,depth];
+clear time depth
+var_mat2='time,depth';
+coltime=1;
+coldepth=2;
+matrix3=[];
+var_mat3='';
+var_txt='';
+inc=1;
+s=size(variables,1);
+
 for i=1:s
     var=deblank(variables(i,:));
     if ~ismember(var,char('Year','Month','Day','Hour','Minute','Second','depth',... % only recognized data variables
-            'xa','xb','xc','xd','xe','xf','xg','xh','xi','xj',...   % entering var name this way permits to avoid later modification if the number of data variables changes
-            'ya','yb','yc','yd','ye','yf','yg','yh','yi','yj'),'rows') 
-    eval(['matrix2=[matrix2',',',var,'];']);
-    eval(['clear ',var,]);
-    eval(['col',var,'=',num2str(2+inc),';']);
-    var_mat2=[var_mat2,',',var];
-    inc=inc+1;
-elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows') % only additional numeric variables
-    eval(['matrix3=[matrix3',',',var,'];']);  
+            'xa','xb','xc','xd','xe','xf','xg','xh','xi','xj',...
+            'ya','yb','yc','yd','ye','yf','yg','yh','yi','yj'),'rows')
+        % entering var name this way permits to avoid later modification if the number of data variables changes
+        eval(['matrix2=[matrix2',',',var,'];']);
+        eval(['clear ',var,]);
+        eval(['col',var,'=',num2str(2+inc),';']);
+        var_mat2=[var_mat2,',',var];
+        inc=inc+1;
+    elseif ismember(var,char('xa','xb','xc','xd','xe','xf','xg','xh','xi','xj'),'rows') % only additional numeric variables
+        eval(['matrix3=[matrix3',',',var,'];']);
         if isempty(var_mat3)
-        var_mat3=var;   
+            var_mat3=var;
         else
-        var_mat3=[var_mat3,',',var];
+            var_mat3=[var_mat3,',',var];
         end
-    eval(['clear ',var,]);
+        eval(['clear ',var,]);
     elseif ismember(var,char('ya','yb','yc','yd','ye','yf','yg','yh','yi','yj'),'rows') % only additional text variables
         if isempty(var_txt)
-        var_txt=var;   
-    eval(['clear ',var,]);
+            var_txt=var;
+            eval(['clear ',var,]);
         else
-        var_txt=[var_txt,',',var];
-    eval(['clear ',var,]);
+            var_txt=[var_txt,',',var];
+            eval(['clear ',var,]);
         end
     end
-end          
+end
 
 %% IMPORT: make a little room!
 %  Note: we do not clear text variables
-clear chk command1 command2 command3 format Year Month Day Hour Minute Second i idx idxvar j logic1 nbstr 
+clear chk command1 command2 command3 format Year Month Day Hour Minute Second i idx idxvar j logic1 nbstr
 clear potential_variables present sig spv string time var depth itemp etemp alight blight speed salinity inc
 clear xa xb xc xd xe xf xg xh xi xj variables2
 
@@ -908,107 +833,99 @@ end
 clear wewant
 
 %% IKNOS_DA: Check for errors in the time vector
-    if ~issorted(matrix2(:,coltime))
-        matrix2=sortrows(matrix2,coltime);
-%     error('Some input data are not succesive, and/or are repeated');
-    end
+if ~issorted(matrix2(:,coltime))
+    matrix2=sortrows(matrix2,coltime);
+    %     error('Some input data are not succesive, and/or are repeated');
+end
 
 %% IKNOS_DA: depth and time resolution
-    intervaldepth=resolution_DepthRes(matrix2(:,coldepth));
- if intervaldepth<=0.01
-        matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.01);
-        intervaldepth=0.01;
- elseif intervaldepth>0.01 && intervaldepth<=0.1
-        matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.1);
-        intervaldepth=0.1;
-    elseif intervaldepth>0.1 && intervaldepth<=0.2
-         matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.2);
-         intervaldepth=0.2;
-    elseif intervaldepth>0.2 && intervaldepth<=0.3
-         matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.3);
-         intervaldepth=0.3;
-    elseif intervaldepth>0.3 && intervaldepth<=0.4
-         matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.4);
-         intervaldepth=0.4;
-    elseif intervaldepth>0.4 && intervaldepth<=0.5
-         matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.5);
-         intervaldepth=0.5;
- end
+intervaldepth=resolution_DepthRes(matrix2(:,coldepth));
+if intervaldepth<=0.01
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.01);
+    intervaldepth=0.01;
+elseif intervaldepth>0.01 && intervaldepth<=0.1
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.1);
+    intervaldepth=0.1;
+elseif intervaldepth>0.1 && intervaldepth<=0.2
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.2);
+    intervaldepth=0.2;
+elseif intervaldepth>0.2 && intervaldepth<=0.3
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.3);
+    intervaldepth=0.3;
+elseif intervaldepth>0.3 && intervaldepth<=0.4
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.4);
+    intervaldepth=0.4;
+elseif intervaldepth>0.4 && intervaldepth<=0.5
+    matrix2(:,coldepth)=iknos_round2nearest(matrix2(:,coldepth),0.5);
+    intervaldepth=0.5;
+end
 
-    disp(['Interval depth == ',num2str(intervaldepth)]);
-    intervaltime=resolution_SamplingRate(round(matrix2(:,coltime).*86400));
-
-% %% A little memory management
-%     cwd = pwd;
-%     cd(tempdir);
-%     pack
-%     cd(cwd)
+disp(['Interval depth == ',num2str(intervaldepth)]);
+intervaltime=resolution_SamplingRate(round(matrix2(:,coltime).*86400));
 
 %% IKNOS_DA: correct depth values
 % disp(['[depth2,correction]=iknos_zoc(matrix2(:,coltime),matrix2(:,coldepth)',ZocString,');']); %can be used to debug
 eval([ '[depth2,correction]=iknos_zoc(matrix2(:,coltime),matrix2(:,coldepth)',ZocString,');']);
 
 % %% IKNOS_DA: Plot to check the zero offset correction
-    fig1=figure(1);
-    set(fig1,'visible','off');
-    plot(matrix2(:,coltime),-matrix2(:,coldepth),'ob-');
-    hold on;
-    plot(matrix2(:,coltime),-correction','-r'); %zocvalue
-    hold on , datetick('x',1) , grid on 
-    plot(matrix2(:,coltime),-depth2,'g'); % added by Arina
+fig1=figure(1);
+set(fig1,'visible','off');
+plot(matrix2(:,coltime),-matrix2(:,coldepth),'ob-');
+hold on;
+plot(matrix2(:,coltime),-correction','-r'); %zocvalue
+hold on , datetick('x',1) , grid on
+plot(matrix2(:,coltime),-depth2,'g'); % added by Arina
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%    THE "CREATE RAW DATA FILE" SECTION-----------------------------------
-%% IKNOS_DA: Create raw data file with corrected depth at the beginning 
+%% IKNOS_DA: Create raw data file with corrected depth at the beginning
 %  create raw data file if strcmp(outfile,'outfile_yes')==1
 
 if strcmp(wantfile,'wantfile_yes')
-    
-%% CREATE RAW DATA FILE: first: chunk to the non overlapped part of the data
-% reminder: matrix1 is 6 columns time matrix, matrix2 is recognized var,
-% matrix3 is other numeric variables, var_
-   if cut==1  %% if file is chunked in several pieces
+
+    %% CREATE RAW DATA FILE: first: chunk to the non overlapped part of the data
+    % reminder: matrix1 is 6 columns time matrix, matrix2 is recognized var,
+    % matrix3 is other numeric variables, var_
+    if cut==1  %% if file is chunked in several pieces
         wanted=find(matrix2(:,coltime)>=from_time & matrix2(:,coltime)<to_time);
-%         bigcell=[num2cell(depth2(wanted,:)),num2cell(matrix2(wanted,:))];
-%         if ~isempty(matrix3);
-%             bigcell=[bigcell,num2cell(matrix3(wanted,:))];
-%         end
-% %         if ~isempty(var_txt);
-% %             bigcell=[bigcell,cellstr(var_txt(wanted,:))];
-% %         end
-%     else  %% this is if file processed in one chunk
-%         bigcell=[num2cell(depth2),num2cell(matrix2)];
-%         if ~isempty(matrix3);
-%             bigcell=[bigcell,num2cell(matrix3)];
-%         end
-% %         if ~isempty(var_txt);
-% %             bigcell=[bigcell,cellstr(var_txt)];
-% %         end
+        %         bigcell=[num2cell(depth2(wanted,:)),num2cell(matrix2(wanted,:))];
+        %         if ~isempty(matrix3);
+        %             bigcell=[bigcell,num2cell(matrix3(wanted,:))];
+        %         end
+        % %         if ~isempty(var_txt);
+        % %             bigcell=[bigcell,cellstr(var_txt(wanted,:))];
+        % %         end
+        %     else  %% this is if file processed in one chunk
+        %         bigcell=[num2cell(depth2),num2cell(matrix2)];
+        %         if ~isempty(matrix3);
+        %             bigcell=[bigcell,num2cell(matrix3)];
+        %         end
+        % %         if ~isempty(var_txt);
+        % %             bigcell=[bigcell,cellstr(var_txt)];
+        % %         end
     end
 
-%% CREATE RAW DATA FILE: minimum manipulations
+    %% CREATE RAW DATA FILE: minimum manipulations
     header=['CorrectedDepth',',',var_mat2]; % minimum output possible
-    format2='%4.1f';% minimum output possible
+    format2='%4.1f'; % minimum output possible
     for i=1:size(matrix2,2)
         format2=[format2,',','%f'];
-    end 
-%     matrix1=flipud(rot90(matrix1)); %due to weird fprintf way of putting in text, need to flip output around
+    end
+    %due to weird fprintf way of putting in text, need to flip output around
     matrix2=flipud(rot90(matrix2));
 
-% bigcell=bigcell';
-
-%% CREATE RAW DATA FILE: if some extra numeric variables exist
+    %% CREATE RAW DATA FILE: if some extra numeric variables exist
     if ~isempty(matrix3)
         header=[header,',',var_mat3];
         for i=1:size(matrix3,2)
-        format2=[format2,',','%4.3f'];
-        end 
+            format2=[format2,',','%4.3f'];
+        end
         matrix3=flipud(rot90(matrix3));
-    end 
+    end
 
-%% CREATE RAW DATA FILE: Create str1 and str2 for writing the file after evaluation.
-    str1=['fprintf(fid,','''',header,'\n'');'];   
-    
+    %% CREATE RAW DATA FILE: Create str1 and str2 for writing the file after evaluation.
+    str1=['fprintf(fid,','''',header,'\n'');'];
+
     if isempty(matrix3)% & isempty(var_txt);
         if cut==1
             str2=['fprintf(fid,','''',format2,'\n'',','[(depth2(wanted,1))'';matrix2(:,wanted)]);'];
@@ -1021,48 +938,41 @@ if strcmp(wantfile,'wantfile_yes')
         else
             str2=['fprintf(fid,','''',format2,'\n'',','[depth2'';matrix2;matrix3]);'];
         end
-    end 
+    end
 
-%% CREATE RAW DATA FILE: Write the file
+    %% CREATE RAW DATA FILE: Write the file
+    if cut==1
+        fid=fopen(outputrawfile,'w');
+        eval(str1);
+        eval(str2);
+        fclose(fid);
+        disp(['Raw data file saved: ',outputrawfile]);
+    else
+        % Build parameter lines to be added to output files
+        param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
+            ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
 
-if cut==1
-    fid=fopen(outputrawfile,'w');
-    eval(str1);
-    eval(str2);
-    fclose(fid);    
-    disp(['Raw data file saved: ',outputrawfile]);
-else
-    % Build parameter lines to be added to output files
-param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
-    ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime);
+        fid=fopen(outputrawfile,'w');
+        fprintf(fid,'%s\n',param{:});
+        eval(str1);
+        eval(str2);
+        fclose(fid);
+        disp(['Raw data file saved: ',outputrawfile]);
 
-    fid=fopen(outputrawfile,'w');
-    fprintf(fid,'%s\n',param{:});
-    eval(str1);
-    eval(str2);
-    fclose(fid);    
-    disp(['Raw data file saved: ',outputrawfile]);    
-    
-end
-%% matrix2 comes back to its initial stage
+    end
+    %% matrix2 comes back to its initial stage
     matrix2=flipud(rot90(matrix2));
 
-%% extract format line for future file opening  
-%         if cut==1
-%         varargout{1} = format2;
-%         end
-    
-    else
+else
     disp('Raw data file NOT saved.')
-%     varargout{1} = [];
-    end 
+end
 
 % End of the "create raw data file section"-----------
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% IKNOS_DA: Cleanup and release memory
-    clear   ya yb yc yd ye yf yg yh yi yj fileout matrix1 matrix3  var_txt
-    clear var_mat1 var_mat3 string2  inc header zocvalue format2 bigcell
+clear   ya yb yc yd ye yf yg yh yi yj fileout matrix1 matrix3  var_txt
+clear var_mat1 var_mat3 string2  inc header zocvalue format2 bigcell
 
 % IKNOS_DA: find diving data and reduce matrix accordingly
 [want,newdepth,dt]=iknos_find_dive(matrix2(:,coltime),timemultiple,depth2,depthmultiple);
@@ -1112,8 +1022,6 @@ if ~isempty(dt)
     % disp(['bt=iknos_find_bottom(matrix',BotString,');']); %use to debug
     eval(['bt=iknos_find_bottom(matrix',BotString,');']);
 
-
-
     %% IKNOS_DA: Plot to check dive selection and dive handles
     fig2=figure(2);
     set(fig2,'visible','off');
@@ -1138,7 +1046,7 @@ if ~isempty(dt)
         %% PDI
         if i~=size(dt,1)
             pdi=round( (tab{i+1,1}(1:coltime) - max(tab{i,1}(:,coltime))) * 86400 ) ;
-        else 
+        else
             pdi=NaN ;
         end
         %% IDZ
@@ -1150,21 +1058,20 @@ if ~isempty(dt)
         end
 
         %%%%%%%%%%%%  basic (minimum) parameters  %%%%%%%%%%%%%%%%%%%%%%
-
-        result1(i,:)=[  tab{i,1}(1:coltime) , ...                                                           % dive time
-            max(tab{i,1}(:,coldepth)) , ...                                             `        % max depth
-            (size(tab{i,1}(:,coltime),1)-1)*intervaltime , ...                                   % dive duration (s)
-            (size(tab{i,3}(:,coltime),1)-1)*intervaltime , ...                                   % bott time (s)
-            (size(tab{i,2}(:,coltime),1)-1)*intervaltime , ...                                   % descent time
-            max(tab{i,2}(:,coldepth)) / ((size(tab{i,2}(:,coltime),1)-1)*intervaltime) , ...                % descent rate
-            (size(tab{i,4}(:,coltime),1)-1)*intervaltime , ...                                   % ascent time
-            max(tab{i,4}(:,coldepth)) / ((size(tab{i,4}(:,coltime),1)-1)*intervaltime) , ...                % asccent rate
-            pdi  , ...                                                                          % PDI
-            iknos_count_wiggles(sign(diff(tab{i,2}(:,coldepth))))  , ...                                          % Depth Wiggles Descent
-            iknos_count_wiggles(sign(diff(tab{i,3}(:,coldepth))))  , ...                                          % Depth Wiggles Bot
-            iknos_count_wiggles(sign(diff(tab{i,4}(:,coldepth))))  , ...                                          % Depth Wiggles Ascent
-            sum(abs(diff(tab{i,3}(:,coldepth)))) ,...                                                   % TotVertDistBot
-            max(tab{i,3}(:,coldepth))-min(tab{i,3}(:,coldepth)) , ...                                   % BottRange
+        result1(i,:)=[  tab{i,1}(1:coltime) , ...                                    % dive time
+            max(tab{i,1}(:,coldepth)) , ...                                          % max depth
+            (size(tab{i,1}(:,coltime),1)-1)*intervaltime , ...                       % dive duration (s)
+            (size(tab{i,3}(:,coltime),1)-1)*intervaltime , ...                       % bott time (s)
+            (size(tab{i,2}(:,coltime),1)-1)*intervaltime , ...                       % descent time
+            max(tab{i,2}(:,coldepth)) / ((size(tab{i,2}(:,coltime),1)-1)*intervaltime) , ...  % descent rate
+            (size(tab{i,4}(:,coltime),1)-1)*intervaltime , ...                       % ascent time
+            max(tab{i,4}(:,coldepth)) / ((size(tab{i,4}(:,coltime),1)-1)*intervaltime) , ...  % asccent rate
+            pdi  , ...                                                               % PDI
+            iknos_count_wiggles(sign(diff(tab{i,2}(:,coldepth))))  , ...             % Depth Wiggles Descent
+            iknos_count_wiggles(sign(diff(tab{i,3}(:,coldepth))))  , ...             % Depth Wiggles Bot
+            iknos_count_wiggles(sign(diff(tab{i,4}(:,coldepth))))  , ...             % Depth Wiggles Ascent
+            sum(abs(diff(tab{i,3}(:,coldepth)))) ,...                                % TotVertDistBot
+            max(tab{i,3}(:,coldepth))-min(tab{i,3}(:,coldepth)) , ...                % BottRange
             ((size(tab{i,3}(:,coltime),1)-1)*intervaltime)/(pdi+(size(tab{i,1}(:,coltime),1)-1)*intervaltime),...  % Efficiency
             idz ] ;
 
@@ -1201,7 +1108,7 @@ if ~isempty(dt)
             else
                 sst=NaN;
             end
-            result3(i,:)=[sst , taeob ];      % Temperature at beginning of dive and at end of Bottom (alternative Temp inertia high)
+            result3(i,:)=[sst , taeob ]; % Temperature at beginning of dive and at end of Bottom (alternative Temp inertia high)
 
             clear dat  dat2
 
@@ -1210,8 +1117,6 @@ if ~isempty(dt)
             dat2=tab{i,2}(~isnan(tab{i,2}(:,coletemp)) ,coletemp);
             dat3=[tab{i,3}(~isnan(tab{i,3}(:,coletemp)) ,coldepth);tab{i,4}(~isnan(tab{i,4}(:,coletemp)) ,coldepth)];
             dat4=[tab{i,3}(~isnan(tab{i,3}(:,coletemp)) ,coletemp);tab{i,4}(~isnan(tab{i,4}(:,coletemp)) ,coletemp)];
-            %         dat3=tab{i,1}(find(~isnan(tab{i,1}(:,coldepth)))  ,coldepth);
-            %         dat4=tab{i,1}(find(~isnan(tab{i,1}(:,coletemp)))  ,coletemp);
             if ~isempty(dat)
                 taeob=mean(dat);
             else
@@ -1224,18 +1129,9 @@ if ~isempty(dt)
                 sst=NaN;
             end
 
-            %         if size(dat3,1)~=size(dat4,1)
-            %             dat3
-            %             dat4
-            %             size(dat3)
-            %             size(dat4)
-            %             tab{i,3}
-            %             tab{i,4}
-            %         end
-
             TD=iknos_thermocline_depth([dat3 dat4],ThermoclineGradient);
 
-            result3(i,:)=[sst , taeob , TD];         % Temperature at beginning of dive and at end of Bottom (alternative Temp inertia low)
+            result3(i,:)=[sst , taeob , TD]; % Temperature at beginning of dive and at end of Bottom (alternative Temp inertia low)
             clear dat dat2
         end
 
@@ -1280,13 +1176,13 @@ if ~isempty(dt)
                 aa=NaN ;
             end
 
-            result4(i,:)=[mssd , ...          % Mean swim speed descent
-                mssb , ...          % Mean swim speed bottom
-                mssa , ...          % Mean swim speed asccent
-                ms , ...            % Max speed
-                soa ,...            % Sum of accelerations during bottom
-                da ,...       % Descent Angle (from surface)
-                aa];          % Ascent Angle (from surface)
+            result4(i,:)=[mssd , ...   % Mean swim speed descent
+                mssb , ...             % Mean swim speed bottom
+                mssa , ...             % Mean swim speed asccent
+                ms , ...               % Max speed
+                soa ,...               % Sum of accelerations during bottom
+                da ,...                % Descent Angle (from surface)
+                aa];                   % Ascent Angle (from surface)
             clear dat1 dat2 dat3 dat4
         end
     end
@@ -1329,9 +1225,6 @@ if ~isempty(dt)
     eval(str4);
     fclose(fid);
 
-    % nout = max(nargout,1)-2;
-    % for i=1:nout , varargout(i) = {format(i)}; end
-
 else
     %% IKNOS_DA: Plot to check dive selection and dive handles
     fig2=figure(2);
@@ -1340,64 +1233,35 @@ else
     fclose(fid);
 end
 
-%% FUNCTION : GET PARAMETERS    
+%% FUNCTION : GET PARAMETERS
 function param=yt_getParameters(inputfile,dataformat,ZocString,ParamLineZoc,timemultiple,depthmultiple,depth_zone,...
     ParamLineBot,wantfile,NightDayLightCutoff,ThermoclineGradient,intervaltime,intervaldepth,version,ProcessTime)
 
-% param=char('%[FILE/FORMAT]',...
-%              ['%   Input file = ',inputfile ],...
-%              ['%   Input Data Format = ', dataformat],...
-%               '%[ZERO OFFSET CORRECTION]');
+param = sprintf('%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s',...
+    '%[FILE/FORMAT]',...
+    ['%   Input file = ', inputfile ],...
+    ['%   Input Data Format = ', dataformat],...
+    '%[ZERO OFFSET CORRECTION]',...
+    ParamLineZoc,...
+    '%[DIVE ANALYSIS]',...
+    ['%   TimeMultiple = ',num2str(timemultiple) ],...
+    ['%   DepthMultiple = ',num2str(depthmultiple)],...
+    ['%   DepthZone = ',num2str(depth_zone)],...
+    ParamLineBot,...
+    ['%   WantFile = ', wantfile],...
+    ['%   NightDayLightCutoff = ',num2str(NightDayLightCutoff)],...
+    ['%   ThermoClineGradient = ',num2str(ThermoclineGradient)],...
+    '%[INFORMATION]',...
+    ['%   Sampling Interval = ',num2str(intervaltime),' s'],...
+    ['%   Depth Resolution = ',num2str(intervaldepth),' m'],...
+    ['%   Minimum Duration of analyzed dives: ',num2str(timemultiple*intervaltime),' s'],...
+    ['%   Minimum Depth of analyzed dives: ',num2str(depthmultiple*intervaldepth),' m'],...
+    ['%   Date and Time Processed (Computer Time) = ', char(ProcessTime) ],...
+    '%[VERSION]',...
+    ['%   Program Version = ', version ],...
+    '%');
 
-% param=char(param,ParamLineZoc);
-% 
-% param=char(param,...
-%               '%[DIVE ANALYSIS]',...
-%               ['%   TimeMultiple = ',num2str(timemultiple) ],...
-%               ['%   DepthMultiple = ',num2str(depthmultiple)],...
-%               ['%   DepthZone = ',num2str(depth_zone)],...
-%               ParamLineBot,...
-%               ['%   WantFile = ', wantfile],...
-%               ['%   NightDayLightCutoff = ',num2str(NightDayLightCutoff)],...
-%               ['%   ThermoClineGradient = ',num2str(ThermoclineGradient)],...
-%               '%[INFORMATION]',...
-%               ['%   Sampling Interval = ',num2str(intervaltime),' s'],...
-%               ['%   Depth Resolution = ',num2str(intervaldepth),' m'],...
-%               ['%   Minimum Duration of analyzed dives: ',num2str(timemultiple*intervaltime),' s'],...
-%               ['%   Minimum Depth of analyzed dives: ',num2str(depthmultiple*intervaldepth),' m'],...
-%               ['%   Date and Time Processed (Computer Time) = ', datestr(ProcessTime,0) ],...
-%               '%[VERSION]',...
-%               ['%   Program Version = ', version ],...
-%               '%');
-
-% Modified to use sprintf for compatibility with M1/M2 Macs. - RRH
-
-param = sprintf('%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s',...
-                '%[FILE/FORMAT]',...
-                ['%   Input file = ', inputfile ],...
-                ['%   Input Data Format = ', dataformat],...
-                ParamLineZoc,...
-                '%[ZERO OFFSET CORRECTION]',...
-                '%[DIVE ANALYSIS]',...
-                ['%   TimeMultiple = ',num2str(timemultiple) ],...
-                ['%   DepthMultiple = ',num2str(depthmultiple)],...
-                ['%   DepthZone = ',num2str(depth_zone)],...
-                ParamLineBot,...
-                ['%   WantFile = ', wantfile],...
-                ['%   NightDayLightCutoff = ',num2str(NightDayLightCutoff)],...
-                ['%   ThermoClineGradient = ',num2str(ThermoclineGradient)],...
-                '%[INFORMATION]',...
-                ['%   Sampling Interval = ',num2str(intervaltime),' s'],...
-                ['%   Depth Resolution = ',num2str(intervaldepth),' m'],...
-                ['%   Minimum Duration of analyzed dives: ',num2str(timemultiple*intervaltime),' s'],...
-                ['%   Minimum Depth of analyzed dives: ',num2str(depthmultiple*intervaldepth),' m'],...
-                ['%   Date and Time Processed (Computer Time) = ', datestr(ProcessTime,0) ],...
-                '%[VERSION]',...
-                ['%   Program Version = ', version ],...
-                '%');
-    
 param=cellstr(param);
-    
-    
+
 %% END of main Function
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

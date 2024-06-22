@@ -14,7 +14,7 @@ clear
 load('All_Filenames.mat');
 load('MetaData.mat');
 
-for i=16:size(MetaDataAll,1) %Skips 2002 and 2003 for the time being
+for i=1:size(MetaDataAll,1)
     TOPPID=MetaDataAll.TOPPID(i)
     row=find(TagMetaDataAll.TOPPID==TOPPID);
 
@@ -27,12 +27,12 @@ for i=16:size(MetaDataAll,1) %Skips 2002 and 2003 for the time being
     %load DiveStat file
     try
         data=readtable(filename);
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
 
     %If there is a DiveStat file, check for data continuity
     if exist('data','var')==1
-        Days=round(datenum(data.DateTime-MetaDataAll.DepartDate(i)));
+        Days=round(datenum(data.Time-MetaDataAll.DepartDate(i)));
         End=round(datenum(MetaDataAll.ArriveDate(i))-datenum(MetaDataAll.DepartDate(i)));
         Days=[0; Days; End];
 
@@ -76,12 +76,12 @@ for i=16:size(MetaDataAll,1) %Skips 2002 and 2003 for the time being
     %load DiveStat file
     try
         data=readtable(filename);
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
 
     %If there is a DiveStat file, check for data continuity
     if exist('data','var')==1
-        Days=round(datenum(data.DateTime-MetaDataAll.DepartDate(i)));
+        Days=round(datenum(data.Time-MetaDataAll.DepartDate(i)));
         End=round(datenum(MetaDataAll.ArriveDate(i))-datenum(MetaDataAll.DepartDate(i)));
         Days=[0; Days; End];
 
@@ -125,12 +125,12 @@ for i=16:size(MetaDataAll,1) %Skips 2002 and 2003 for the time being
     %load DiveStat file
     try
         data=readtable(filename);
-        data.DateTime=datetime(data.JulDate,"ConvertFrom","datenum");
+        data.Time=datetime(data.JulDate,"ConvertFrom","datenum");
     end
 
     %If there is a DiveStat file, check for data continuity
     if exist('data','var')==1
-        Days=round(datenum(data.DateTime-MetaDataAll.DepartDate(i)));
+        Days=round(datenum(data.Time-MetaDataAll.DepartDate(i)));
         End=round(datenum(MetaDataAll.ArriveDate(i))-datenum(MetaDataAll.DepartDate(i)));
         Days=[0; Days; End];
 

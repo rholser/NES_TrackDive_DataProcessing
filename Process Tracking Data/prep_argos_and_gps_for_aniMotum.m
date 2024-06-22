@@ -49,6 +49,7 @@
 %   08-Apr-2023 - RRH - Changed file names to aniMotum, updated dates to use datetime instead of datenum
 %   11-Apr-2023 - RRH - Changing to use AllFilenames.mat to find files
 %   17-Jun-2023 - RRH - Incorporate multiple GPS filenames/types (GPS from mat files)
+%   20-Jun-2024 - RRH - Added automatic ouput folder
 
 clear 
 %cd 'E:/Tracking Diving 2004-2020/Argos Raw'
@@ -477,8 +478,7 @@ for j=1:size(ArgosFiles,1)
             %sort rows again
             tracklocs=sortrows(tracklocs,3);
 
-            %cd 'E:/Tracking Diving 2004-2020/'
-            cd 'H:/Tracking Diving 2004-2020/All Pre aniMotum'
+            cd(strcat(strtok(ArgosFiles.folder(j),'\'),'\Tracking Diving 2004-2020\All Pre aniMotum'))
             writetable(tracklocs,strcat(num2str(TOPPID),'_', num2str(PTTID),'_GPS_Argos_pre_aniMotum.csv'))
             clear index StartTime EndTime EndLat EndLon tokeep tracklocs
         end
