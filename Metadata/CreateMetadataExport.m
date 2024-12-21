@@ -22,7 +22,7 @@ end
 % Only keep needed columns of MetaDataAll
 MetaDataAll=MetaDataAll(:,ismember(MetaDataAll.Properties.VariableNames, {'DepartDate','ArriveDate',...
     'DepartLat','DepartLon','ArriveLat','ArriveLon','DepartLoc','ArriveLoc','Season','BirthYear','AgeClass', ...
-    'Sex','Manipulation','ManipulationType','HadPup','Comment'}));
+    'Sex','Manipulation','ManipulationType','HadPup'}));
 %Concatenate tables
 MetaDataAll=[ToAdd MetaDataAll];
 %Remove rows pre-2004 and unneeded columns from TagMetaData

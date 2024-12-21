@@ -121,21 +121,31 @@ CompileFilenames
 clear
 
 load('All_Filenames.mat')
-load('MetaData.mat');
+load('MetaData_Corrections.mat');
 files=[TDRRawFiles;TDR2RawFiles;TDR3RawFiles];
 
-for k=1:size(files,1)
+%for k=1:size(files,1)
+for k=1:size(MetaDataAll,1)
     %Find start and end time for each deployment in MetaData using TOPPID
-    TOPPID=files.TOPPID(k);
-    row=find(MetaDataAll.TOPPID==TOPPID);
-    Start=MetaDataAll.DepartDate(row);
-    End=MetaDataAll.ArriveDate(row);
-    outFolder=files.folder(k);
-    filename=files.filename(k);
-    if contains(filename,'tdr_raw')
-        filename=strcat(extractBefore(filename,'_raw'),'_clean.csv');
+    % TOPPID=files.TOPPID(k);
+    % row=find(MetaDataAll.TOPPID==TOPPID);
+    % Start=MetaDataAll.DepartDate(row);
+    % End=MetaDataAll.ArriveDate(row);
+    % outFolder=files.folder(k);
+    % filename = files.filename(k);
+
+    row=find(files.TOPPID==MetaDataAll.TOPPID(k));
+    TOPPID=MetaDataAll.TOPPID(k);
+    for i=size(row,1)
+        Start=MetaDataAll.DepartDate(k);
+        End=MetaDataAll.ArriveDate(k);
+        outFolder=files.folder(row(i));
+        filename=files.filename(row(i));
+        if contains(filename,'tdr_raw')
+            filename=strcat(extractBefore(filename,'_raw'),'_clean.csv');
+        end
+        ChangeFormat_DA(filename,Start,End,TOPPID,outFolder);
     end
-    ChangeFormat_DA(filename,Start,End,TOPPID,outFolder);
 end
 
 CompileFilenames

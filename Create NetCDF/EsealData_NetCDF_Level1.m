@@ -30,13 +30,15 @@
 %               annotation; added user-selected (ui) output folder
 % 06-Aug-2023 - Added global attribute
 % 14-Aug-2023 - Modified global attributes
+% 19-Dec-2024 - Corrected read/write lines for raw argos data; removed some conditionals for raw TDR
+%               records that were corrected.
 
 clear
 load('MetaData.mat');
 folder=uigetdir('C:\','File Output Folder');
 
 tic
-for i=1:size(TagMetaDataAll,1)
+for i=477:size(TagMetaDataAll,1)
 
     load('All_Filenames.mat');
 
@@ -289,8 +291,8 @@ for i=1:size(TagMetaDataAll,1)
                 data=readtable(strcat(ArgosFiles.folder(ArgosFiles.TOPPID==TOPPID),'\',...
                     ArgosFiles.filename(ArgosFiles.TOPPID==TOPPID)),opts);
                 netcdf.putVar(RawArgosGrpID,RawArgosPTT,data.pttid)
-                netcdf.putVar(RawArgosGrpID,RawArgosDate,data.dates)
-                netcdf.putVar(RawArgosGrpID,RawArgosClass,char(data.lq))
+                netcdf.putVar(RawArgosGrpID,RawArgosDate,string(data.dates))
+                netcdf.putVar(RawArgosGrpID,RawArgosClass,data.lq)
                 netcdf.putVar(RawArgosGrpID,RawArgosLat1,data.lat1)
                 netcdf.putVar(RawArgosGrpID,RawArgosLon1,data.lon1)
                 netcdf.putVar(RawArgosGrpID,RawArgosSemiMaj,data.semimajor)
@@ -423,15 +425,9 @@ for i=1:size(TagMetaDataAll,1)
         %Set up different imports to account for different instrument types/formats
         %Wildlife Computers - may include light and temp
         if contains(TDR2RawFiles.filename(TDR2RawFiles.TOPPID==TOPPID),'out-Archive')==1
-            if TOPPID==2013041 || TOPPID==2013043 || TOPPID==2013045 || TOPPID==2013047 || TOPPID==2015006
-                netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Var1));
-                netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Var2);
-                m=size(data,2);
-            else
-                netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Time));
-                netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
-                m=size(data,2);
-            end
+            netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Time));
+            netcdf.putVar(RawTDR2GrpID,RawTDR2Depth,data.Depth);
+            m=size(data,2);
             %SMRU
         elseif contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'tdr') && ~contains(TDRRawFiles.filename(TDRRawFiles.TOPPID==TOPPID),'kami','IgnoreCase',true)==1
             netcdf.putVar(RawTDR2GrpID,RawTDR2Date,string(data.Time));

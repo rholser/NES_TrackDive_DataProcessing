@@ -6,7 +6,7 @@ load('All_Filenames.mat')
 opts = delimitedTextImportOptions("NumVariables", 31);
 
 % Specify range and delimiter
-opts.DataLines = [19, 20];
+opts.DataLines = [20, 21];
 
 
 opts.Delimiter = ",";

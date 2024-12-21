@@ -431,19 +431,19 @@ end
 % Load rawzoc data and divestat files
     if size(strfind(filename,'-out-Archive'),1)>0
         rawzocdatafile=dir(strcat(outFolder,'\',strtok(filename,'-'),'_DAprep_full_iknos_rawzoc_data.csv'));
-        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',22,'ReadVariableNames',true);
+        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
         rawzocdata.Time=datetime(rawzocdata.time,'ConvertFrom','datenum');
     
         DiveStatfile=dir(strcat(outFolder,'\',strtok(filename,'-'),'_DAprep_full_iknos_DiveStat.csv'));
-        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',22,'ReadVariableNames',true);
+        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
         DiveStat.Time=datetime(DiveStat.Year,DiveStat.Month,DiveStat.Day,DiveStat.Hour,DiveStat.Min,DiveStat.Sec);
     else
         rawzocdatafile=dir(strcat(outFolder,'\',strtok(filename,'.'),'_DAprep_full_iknos_rawzoc_data.csv'));
-        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',22,'ReadVariableNames',true);
+        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
         rawzocdata.Time=datetime(rawzocdata.time,'ConvertFrom','datenum');
     
         DiveStatfile=dir(strcat(outFolder,'\',strtok(filename,'.'),'_DAprep_full_iknos_DiveStat.csv'));
-        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',22,'ReadVariableNames',true);
+        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
         DiveStat.Time=datetime(DiveStat.Year,DiveStat.Month,DiveStat.Day,DiveStat.Hour,DiveStat.Min,DiveStat.Sec);
     end
     
