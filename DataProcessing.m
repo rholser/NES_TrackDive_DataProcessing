@@ -172,6 +172,8 @@ CompileFilenames
 QC_DiveStat
 QC_Flag
 
+CompileMetadata_SampRes
+
 %% Step 5: Geolocate Dives
 
 GeolocateDives

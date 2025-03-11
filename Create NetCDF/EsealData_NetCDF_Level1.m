@@ -38,7 +38,7 @@ load('MetaData.mat');
 folder=uigetdir('C:\','File Output Folder');
 
 tic
-for i=477:size(TagMetaDataAll,1)
+for i=1:652
 
     load('All_Filenames.mat');
 

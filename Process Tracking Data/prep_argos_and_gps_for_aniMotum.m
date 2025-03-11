@@ -1,13 +1,22 @@
-% Created by: T.Keates (tkeates@ucsc.edu)
-% Created on: June 2018
+%Create aniMotum input from raw Argos and solved GPS data
+% Update Log:
+%   08-Apr-2023 - RRH - Changed file names to aniMotum, updated dates to use datetime instead of datenum
+%   11-Apr-2023 - RRH - Changing to use AllFilenames.mat to find files
+%   17-Jun-2023 - RRH - Incorporate multiple GPS filenames/types (GPS from mat files)
+%   02-Mar-2025 - RRH - Fixed gap size check for end of track (line 457) to account
+%                       for new datetime formatting (needed to add days() to convert duration
+%                       to demical days). 
+%   04-Mar-2025 - RRH - Removed any G quality locations from raw argos
+%                       files - residual  arrival and departure points 
+%                       from previous mat file processing.
+%   06-Mar-2025 - RRH - Added additional format/header combination for argos data.
 %
-% Create aniMotum input from raw Argos and solved GPS data
+%Incorporates Argos semi major and semi minor axes and ellipse orientations where available (Kalman filtered data)
 %
-% Incorporates Argos semi major and semi minor axes and ellipse orientations where available (Kalman filtered data)
-%
-% Identifies several different input data formats, however, there may well be more in the future...
+%Identifies several different input data formats, however, there may well be more in the future...
 %
 % Input data:
+%
     % MetaData.mat (includes startstop)
     % All_Filenames.mat (includes path and filename for all file types, with TOPPID as unique
     % identifier)
@@ -17,17 +26,17 @@
     % (some Argos records don't start until mid-trip, directly comparing was causing trips to be skipped).
 %
 % Output data:
-  % One csv per track with:
-    % TOPPID
-    % pttid
-    % JulDate
-    % Date
-    % Latitude
-    % Longitude
-    % LocationClass
-    % SemiMajorAxis
-    % SemiMinorAxis
-    % EllipseOrientation
+%  One csv per track with:
+    %TOPPID
+    %pttid
+    %JulDate
+    %Date
+    %Latitude
+    %Longitude
+    %LocationClass
+    %SemiMajorAxis
+    %SemiMinorAxis
+    %EllipseOrientation
 %    
 %Things this code does:
 %
@@ -44,34 +53,34 @@
 % Depending on your needs, adjust these criteria. Visual QC always recommended - the aniMotum R code makes 
 % you some maps.
 
-% Version 2.0:
-% Update Log:
-%   08-Apr-2023 - RRH - Changed file names to aniMotum, updated dates to use datetime instead of datenum
-%   11-Apr-2023 - RRH - Changing to use AllFilenames.mat to find files
-%   17-Jun-2023 - RRH - Incorporate multiple GPS filenames/types (GPS from mat files)
-%   20-Jun-2024 - RRH - Added automatic ouput folder
-
 clear 
 %cd 'E:/Tracking Diving 2004-2020/Argos Raw'
 %ArgosFiles=dir('*RawArgos.csv');
-load('MetaData.mat');
+file_meta = uigetfile('','Select metadata file');
+load(file_meta);
 
 %Using AllFilename.mat structure and writes files to same location that raw files are found.
-load('All_Filenames.mat')
+file_allnames = uigetfile('','Select all filenames file');
+load(file_allnames);
+
+%Select output folder
+newfolder = uigetdir('C:/','Select output folder');
+
 TOPPIDchecklist=table(MetaDataAll.TOPPID,MetaDataAll.PTTID,'VariableNames',{'TOPPID','PTTID'});
 
 for j=1:size(ArgosFiles,1)
     %% Load file from All_Filenames: ArgosFiles
-    argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),'ReadVariableNames',true);
+    argosdata = readtable(strcat(ArgosFiles.folder(j), filesep, ArgosFiles.filename(j)), 'ReadVariableNames', true);
+
     toppid=ArgosFiles.TOPPID(j);
     PTTID1=MetaDataAll.PTTID(MetaDataAll.TOPPID==toppid);
     %% Identify format of input data
     %this is WC downloaded RawArgos data
     if strcmp(argosdata.Properties.VariableNames{1},'Prog')==1 && strcmp(argosdata.Properties.VariableNames{2},'PTT')==1
         clear pttid lat1 lon1 lat2 lon2 dates lq semimajor semiminor eor
-        opts=detectImportOptions(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)));
+        opts=detectImportOptions(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)));
         opts = setvartype(opts,{'Class'},'char');
-        argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),opts);
+        argosdata=readtable(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)),opts);
 
         % keep unique time/location combinations only (this is what WC retains in their "Argos.csv"
         % output - but that format currently does not retain error information)
@@ -95,9 +104,9 @@ for j=1:size(ArgosFiles,1)
     %this is WC downloaded RawArgos data from Solar Tags
     if strcmp(argosdata.Properties.VariableNames{1},'PTT')==1 && strcmp(argosdata.Properties.VariableNames{2},'Platform')==1
         clear pttid lat1 lon1 lat2 lon2 dates lq semimajor semiminor eor
-        opts=detectImportOptions(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)));
+        opts=detectImportOptions(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)));
         %opts = setvartype(opts,{'Class'},'char');
-        argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),opts);
+        argosdata=readtable(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)),opts);
 
         % keep unique time/location combinations only (this is what WC retains in their "Argos.csv"
         % output - but that format currently does not retain error information)
@@ -210,12 +219,19 @@ for j=1:size(ArgosFiles,1)
             lat1=argosdata.Latitude;
             lon1=argosdata.Longitude;
         end
+        try
+            pttid=argosdata.Ptt;
+            lat1=argosdata.Latitude;
+            lon1=argosdata.Longitude;
+            dates=datetime(argosdata.Date,'Format','HH:mm:ss dd-MMM-uuuu');
+            lq=argosdata.Quality;
+        end
     end
     %not really sure what this format this is either... double ha
     if strcmp(argosdata.Properties.VariableNames{1},'vernacular_name')==1
-        opts=detectImportOptions(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)));
+        opts=detectImportOptions(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)));
         opts = setvartype(opts,{'location_quality'},'char');
-        argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),opts);        
+        argosdata=readtable(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)),opts);        
 
         clear validlocs pttid lat1 lon1 lat2 lon2 dates lq semimajor semiminor eor
         lat1=argosdata.decimal_latitude;
@@ -236,10 +252,10 @@ for j=1:size(ArgosFiles,1)
     %this is argos data pulled from existing matfiles
     if strcmp(argosdata.Properties.VariableNames{1},'TOPPID')==1
         clear pttid lat1 lon1 lat2 lon2 dates lq semimajor semiminor eor
-        opts=detectImportOptions(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j))); %this likes to turn location classes into non-char which is bad, so reimport the data
+        opts=detectImportOptions(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j))); %this likes to turn location classes into non-char which is bad, so reimport the data
         try
             opts = setvartype(opts,{'LocationClass'},'char');
-            argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),opts);
+            argosdata=readtable(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)),opts);
             lq=argosdata.LocationClass;
             pttid=argosdata.PTT;
             lat1=argosdata.Latitude;
@@ -252,7 +268,7 @@ for j=1:size(ArgosFiles,1)
         end
         try
             opts = setvartype(opts,{'lq'},'char');
-            argosdata=readtable(strcat(ArgosFiles.folder(j),'\',ArgosFiles.filename(j)),opts);
+            argosdata=readtable(strcat(ArgosFiles.folder(j),filesep,ArgosFiles.filename(j)),opts);
             lq=argosdata.lq;
             pttid=argosdata.pttid;
             lat1=argosdata.lat1;
@@ -267,6 +283,10 @@ for j=1:size(ArgosFiles,1)
 
     locs1=table(NaN(length(lat1),1),pttid,dates,lat1,lon1,lq,semimajor,semiminor,eor,...
         'VariableNames',{'TOPPID','pttid','dates','lat1','lon1','lq','semimajor','semiminor','eor'});
+    % Remove any G quality points (arrival and departure locations) - left
+    % from previous processing, not part of raw argos data.
+    locs1(contains(locs1.lq,'G'),:) = [];
+
     uniqueptts=unique(pttid);
 
     %add GPS data if exists for that TOPPID
@@ -275,7 +295,7 @@ for j=1:size(ArgosFiles,1)
         gpslocs=table();
 
         if ~isempty(GPSFiles(GPSFiles.TOPPID==toppid,:))
-            GPSfile=strcat(GPSFiles.folder(GPSFiles.TOPPID==toppid),'\',GPSFiles.filename(GPSFiles.TOPPID==toppid));
+            GPSfile=strcat(GPSFiles.folder(GPSFiles.TOPPID==toppid),filesep,GPSFiles.filename(GPSFiles.TOPPID==toppid));
             if contains(GPSFiles.filename(GPSFiles.TOPPID==toppid),'Locations')
                 %this is Wildlife Computers downloaded GPS
                 GPSdata=readtable(GPSfile);
@@ -338,6 +358,8 @@ for j=1:size(ArgosFiles,1)
                         'VariableNames',{'TOPPID','pttid','dates','lat1','lon1','lq','semimajor','semiminor','eor'});
                     clear GPSdata toppidg pttidg datesg lat1g lon1g lc1g
 
+                    gpslocs(gpslocs.lat1==0,:)=[];
+
                     % else
                     %     %This is SMRU
                     %     SMRU_GPS=readtable(GPSfile);
@@ -399,7 +421,7 @@ for j=1:size(ArgosFiles,1)
             end
         end
 
-        if isempty(trackindex)==1 && ~isempty(MetaDataAll.PTTID==PTTID)
+        if isempty(trackindex)==1 && any(MetaDataAll.PTTID==PTTID)
             fprintf('Error: No matching record in MetaDataAll file found. Time stamps could be off, could be a translocation...')
             continue
         end
@@ -435,13 +457,13 @@ for j=1:size(ArgosFiles,1)
                 TOPPIDchecklist.Complete(row)="Very Little Data";
             elseif isnat(EndTime)
                 TOPPIDchecklist.Complete(row)="Incomplete, Did Not Return Home";
-            elseif (EndTime-tracklocs.Date(end))>10
+            elseif days(EndTime-tracklocs.Date(end))>10
                 TOPPIDchecklist.Complete(row)="Incomplete, Returned Home";
             else
                 TOPPIDchecklist.Complete(row)="Complete";
             end
 
-            %add end point to track if seal returned to colony and the data gap is less than 14 days
+            %add end point to track if seal returned to colony and the data gap is less than 5 days
             EndLat=MetaDataAll.ArriveLat(tindex);
             EndLon=MetaDataAll.ArriveLon(tindex);
             StartLat=MetaDataAll.DepartLat(tindex);
@@ -452,7 +474,7 @@ for j=1:size(ArgosFiles,1)
                 continue
             end
 
-            if ~isnan(EndLat) && ~isnan(EndLon) && (EndTime-tracklocs.Date(end))<5
+            if ~isnan(EndLat) && ~isnan(EndLon) && days(EndTime-tracklocs.Date(end))<5
                 tracklocs.TOPPID(x+1)=TOPPID;
                 tracklocs.PTT(x+1)=locs.pttid(1);
                 tracklocs.Date(x+1)=EndTime;
@@ -478,8 +500,11 @@ for j=1:size(ArgosFiles,1)
             %sort rows again
             tracklocs=sortrows(tracklocs,3);
 
-            cd(strcat(strtok(ArgosFiles.folder(j),'\'),'\Tracking Diving 2004-2020\All Pre aniMotum'))
-            writetable(tracklocs,strcat(num2str(TOPPID),'_', num2str(PTTID),'_GPS_Argos_pre_aniMotum.csv'))
+            %cd 'E:/Tracking Diving 2004-2020/'
+            %cd 'E:/Tracking Diving 2004-2020/All Pre aniMotum'
+            %writetable(tracklocs,strcat(num2str(TOPPID),'_', num2str(PTTID),'_GPS_Argos_pre_aniMotum.csv'))
+            writetable(tracklocs,strcat(newfolder,filesep, ...
+                num2str(TOPPID),'_', num2str(PTTID),'_GPS_Argos_pre_aniMotum.csv'))
             clear index StartTime EndTime EndLat EndLon tokeep tracklocs
         end
     end
@@ -487,3 +512,11 @@ for j=1:size(ArgosFiles,1)
    
 end
 %save('TrackRunningChecklist.mat','TOPPIDchecklist')
+
+
+%% The following TOPPIDs do not run through this code...requires running them manually
+% No argos data: 2007047, 2010068, 2010075, 2011040, 2012050
+% May have had argos data but file is missing: 2015010,
+% Rachel can regenerate from prv files: 2016005, 2016006, 2016010, 2016011, 2016012
+% No data: 2009018
+% Bad files: 2009004 (actually 2009007 data, result of typo)
