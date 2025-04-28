@@ -50,14 +50,19 @@
 %               applies the corrections in Step 4
 %               Requires 'KamiTimeAdjust.csv' and 'StrokeTimeAdjust.csv'
 % 29-May-2024 - Add cut date for 2010028
+% 07-Jun-2024 - Updated readtables for new header lines in output files
+% 01-Aug-2024 - Changed '/' or '\' to filesep to be OS agnostic
+% 11-Aug-2024 - Fixed tdr.DateTime to tdr.Time in Step 4.3 to correctly
+%               apply compression/expansion factor
+%               Fixed issue with 2011043 in Step 3.2
 
 function ChangeFormat_DA(filename,Start,End,TOPPID,outFolder)
 %% Step 1: load csv of TDR data
-    data=readtable(strcat(outFolder,'/',filename),'HeaderLines',0,'ReadVariableNames',true);
+    data=readtable(strcat(outFolder,filesep,filename),'HeaderLines',0,'ReadVariableNames',true);
     
     %Test for normal headers.  If Depth header is missing, re-imports file with no headers and assigns them.
     if isempty(find(strcmp('Depth', data.Properties.VariableNames))>0)
-        data=readtable(strcat(outFolder,'/',filename),'HeaderLines',0,'ReadVariableNames',false);
+        data=readtable(strcat(outFolder,filesep,filename),'HeaderLines',0,'ReadVariableNames',false);
         data.Properties.VariableNames(1)={'Time'};
         data.Properties.VariableNames(2)={'Depth'};
         data(1,:)=[]; %remove top row - often has faulty time format when no headers
@@ -206,13 +211,13 @@ function ChangeFormat_DA(filename,Start,End,TOPPID,outFolder)
         secondhalf=data(data.Time>datetime(2011,7,4,12,6,55),:);
         insertDepth=repelem(firsthalf.Depth(end),26,1); % extend surface interval by 26*seconds(5)=130
         insertDateTime=transpose(firsthalf.Time(end)+seconds(5):seconds(5):firsthalf.Time(end)+26*seconds(5));
-        insertStroke=zeros(26,1); insertSway=zeros(26,1); insertPosture=zeros(26,1);
-        insert=table(insertDateTime,insertDepth,insertStroke,insertSway,insertPosture,'VariableNames',{'Time','Depth','Stroke','Sway','Posture'});
-        secondhalf.Time=transpose(insert.Time(end)+seconds(5):seconds(5):secondhalf.Time(end)+26*seconds(5));
-        %%%% There are instances of a 10 second interval in secondhalf so these newly calculated
-        %%%% times are two rows longer thean secondhalf.
+        % insertStroke=zeros(26,1); insertSway=zeros(26,1); insertPosture=zeros(26,1);
+        % insert=table(insertDateTime,insertDepth,insertStroke,insertSway,insertPosture,'VariableNames',{'Time','Depth','Stroke','Sway','Posture'});
+        insert=table(insertDateTime,insertDepth,'VariableNames',{'Time','Depth'});
+        secondhalf.Time=transpose(insert.Time(end)+seconds(5):seconds(5):secondhalf.Time(end)+24*seconds(5));
         clear data;
-        data=[firsthalf; insert; secondhalf];
+        data=[firsthalf(:,{'Time','Depth'}); insert; secondhalf(:,{'Time','Depth'})];
+        [data.Year, data.Month, data.Day,data.Hour,data.Min,data.Sec]=datevec(data.Time); 
     end
 
     %Step 3.3: load UTC offset and compression factor for kami and stroke records (applied in Step 4)
@@ -295,13 +300,13 @@ if size(strfind(filename,'Kami'),1)>0 || size(strfind(filename,'Stroke'),1)>0
     if compress~=0
         record_length=seconds(data.Time(end)-data.Time(1));
         record_frac=seconds(data.Time(:)-data.Time(1));
-        if TOPPID==2013043 || TOPPID==2013045 || TOPPID==2018001
+        if TOPPID==2018001
             record_frac=flip(record_frac);
         end
         if expand==0
-            data.DateTime=data.Time-seconds((seconds(compress)*record_frac)/record_length);
+            data.Time=data.Time-seconds((seconds(compress)*record_frac)/record_length);
         else % if expand==1
-            data.DateTime=data.Time-seconds((seconds(-1*compress)*record_frac)/record_length);
+            data.Time=data.Time-seconds((seconds(-1*compress)*record_frac)/record_length);
         end
         [data.Year, data.Month, data.Day, data.Hour, data.Min, data.Sec]...
             =datevec(data.Time);
@@ -322,7 +327,9 @@ end
 
 %% Step 5: calculate sampling rate
     SamplingDiff=diff(data.Time);
+    SamplingDiff = seconds(round(SamplingDiff));
     SamplingRate=seconds(round(mode(SamplingDiff)));
+test = diff(data.Sec);
 
 %% Step 6: Remove data with bad times (zero or negative sampling rates or NaT)
 %NOTE: This will only remove SINGLE bad lines and will not deal with full time shifts.
@@ -382,11 +389,11 @@ end
 
 %% Step 7: generate variable string for iknos da and write to new .csv.
     if size(strfind(filename,'-out-Archive'),1)>0
-        filenameDA=strcat(outFolder,'\',strtok(filename,'-'),'_DAprep_full.csv');
-        filenameDAStr=strcat(outFolder,'\',strtok(filename,'-'),'_DAString.txt');
+        filenameDA=strcat(outFolder,filesep,strtok(filename,'-'),'_DAprep_full.csv');
+        filenameDAStr=strcat(outFolder,filesep,strtok(filename,'-'),'_DAString.txt');
     else
-        filenameDA=strcat(outFolder,'\',strtok(filename,'.'),'_DAprep_full.csv');
-        filenameDAStr=strcat(outFolder,'\',strtok(filename,'.'),'_DAString.txt');
+        filenameDA=strcat(outFolder,filesep,strtok(filename,'.'),'_DAprep_full.csv');
+        filenameDAStr=strcat(outFolder,filesep,strtok(filename,'.'),'_DAString.txt');
     end
     
     [data_DA,DAstring]=DA_data_compiler(data);
@@ -409,7 +416,7 @@ end
         minsurface=0; % set manually through visual inspection
     elseif TOPPID==2006052 && size(strfind(filename,'-out-Archive'),1)>0 % TDR stopped recording when "DRY", resulting in gaps during surface events.
         minsurface=0; % set manually through visual inspection
-    elseif TOPPID==2013036 && size(strfind(filename,'-out-Archive'),1)>0 % TDR stopped recording when "DRY", resulting in gaps during surface events.
+    elseif TOPPID==2013036 && size(strfind(filename,'-out-Archive'),1)>0    % TDR stopped recording when "DRY", resulting in gaps during surface events.
         minsurface=0; % set manually through visual inspection
     elseif abs(xi(3)-xi(2))>10 % if there's a large jump, might be due to surface spikes
         minsurface=xi(3);
@@ -420,30 +427,30 @@ end
 %% Step 9: Run IKNOS DA - new ZocMinMax with DEFAULT ZOC params
     if minsurface<-10
         iknos_da(filenameDA,DAstring,32/SamplingRate,25/DepthRes,20,'wantfile_yes','ZocWindow',2,...
-            'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,'ZocMinMax',[minsurface-10,2200]);
+            'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,'ZocMinMax',[minsurface-10,2200]); % 'BotFix',80
     else
         iknos_da(filenameDA,DAstring,32/SamplingRate,25/DepthRes,20,'wantfile_yes','ZocWindow',2,...
-            'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,'ZocMinMax',[-10,2200]);
+            'ZocWidthForMode',15,'ZocSurfWidth',10,'ZocDiveSurf',15,'ZocMinMax',[-10,2200]); % 'BotFix',80
     end
 
 %% Step 10: Plot and save QC figs
 
 % Load rawzoc data and divestat files
     if size(strfind(filename,'-out-Archive'),1)>0
-        rawzocdatafile=dir(strcat(outFolder,'\',strtok(filename,'-'),'_DAprep_full_iknos_rawzoc_data.csv'));
-        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
+        rawzocdatafile=dir(strcat(outFolder,filesep,strtok(filename,'-'),'_DAprep_full_iknos_rawzoc_data.csv'));
+        rawzocdata=readtable(strcat(rawzocdatafile.folder,filesep,rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
         rawzocdata.Time=datetime(rawzocdata.time,'ConvertFrom','datenum');
     
-        DiveStatfile=dir(strcat(outFolder,'\',strtok(filename,'-'),'_DAprep_full_iknos_DiveStat.csv'));
-        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
+        DiveStatfile=dir(strcat(outFolder,filesep,strtok(filename,'-'),'_DAprep_full_iknos_DiveStat.csv'));
+        DiveStat=readtable(strcat(DiveStatfile.folder,filesep,DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
         DiveStat.Time=datetime(DiveStat.Year,DiveStat.Month,DiveStat.Day,DiveStat.Hour,DiveStat.Min,DiveStat.Sec);
     else
-        rawzocdatafile=dir(strcat(outFolder,'\',strtok(filename,'.'),'_DAprep_full_iknos_rawzoc_data.csv'));
-        rawzocdata=readtable(strcat(rawzocdatafile.folder,'\',rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
+        rawzocdatafile=dir(strcat(outFolder,filesep,strtok(filename,'.'),'_DAprep_full_iknos_rawzoc_data.csv'));
+        rawzocdata=readtable(strcat(rawzocdatafile.folder,filesep,rawzocdatafile.name),'HeaderLines',26,'ReadVariableNames',true);
         rawzocdata.Time=datetime(rawzocdata.time,'ConvertFrom','datenum');
     
-        DiveStatfile=dir(strcat(outFolder,'\',strtok(filename,'.'),'_DAprep_full_iknos_DiveStat.csv'));
-        DiveStat=readtable(strcat(DiveStatfile.folder,'\',DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
+        DiveStatfile=dir(strcat(outFolder,filesep,strtok(filename,'.'),'_DAprep_full_iknos_DiveStat.csv'));
+        DiveStat=readtable(strcat(DiveStatfile.folder,filesep,DiveStatfile.name),'HeaderLines',26,'ReadVariableNames',true);
         DiveStat.Time=datetime(DiveStat.Year,DiveStat.Month,DiveStat.Day,DiveStat.Hour,DiveStat.Min,DiveStat.Sec);
     end
     
@@ -458,9 +465,9 @@ end
     legend({'raw','zoc','Start dive','End dive'});
     title(['Raw vs ZOC: ' num2str(TOPPID)]);
     if size(strfind(filename,'-out-Archive'),1)>0
-        savefig(strcat(outFolder,'\',strtok(filename,'-'),'_Raw_ZOC.fig'));
+        savefig(strcat(outFolder,filesep,strtok(filename,'-'),'_Raw_ZOC.fig'));
     else
-        savefig(strcat(outFolder,'\',strtok(filename,'.'),'_Raw_ZOC.fig'));
+        savefig(strcat(outFolder,filesep,strtok(filename,'.'),'_Raw_ZOC.fig'));
     end
     close;
     
